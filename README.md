@@ -17,6 +17,19 @@
 3. 用 DeepSeek 按"兴趣画像"筛选、分组、写中文摘要
 4. 推送到飞书（交互卡片，链接可点）
 5. 存档到 `reports/brief-YYYY-MM-DD.md`（作为历史与知识库的原始数据）
+6. 用 `build_site.py` 把 `reports/` 渲染成 `site/` 静态网站
+
+## 网站
+
+`build_site.py` 把 `reports/` 里的历史晨报生成一个可浏览的网站（零第三方依赖）：
+
+```bash
+python3 build_site.py   # 生成到 site/ ，打开 site/index.html 预览
+```
+
+- 首页：按日期列出所有期
+- 每日页：完整晨报，所有条目带原文链接，含上/下一天导航
+- 每日任务会自动重新生成并提交到 `site/`
 
 ## 信息源
 

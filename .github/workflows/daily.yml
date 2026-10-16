@@ -29,14 +29,17 @@ jobs:
           FEISHU_WEBHOOK_URL: ${{ secrets.FEISHU_WEBHOOK_URL }}
         run: python brief.py
 
-      - name: Commit report
+      - name: Build website
+        run: python3 build_site.py
+
+      - name: Commit reports & site
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add reports/
+          git add reports/ site/
           if ! git diff --cached --quiet; then
             git commit -m "brief: $(date -u +%F)"
             git push
           else
-            echo "no report changes"
+            echo "no changes"
           fi
