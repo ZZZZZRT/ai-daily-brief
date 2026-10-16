@@ -11,7 +11,7 @@
 
 用法: python3 build_site.py
 """
-import os, re, glob, html, json, shutil
+import os, re, glob, html, json, shutil, datetime
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 REPORT_DIR = os.path.join(BASE, "reports")
@@ -247,6 +247,8 @@ def build():
             render(tpl, TITLE=title, CSS_URL="style.css", SITE=SITE_TITLE,
                    SUB=sub, BODY=body, **tabs))
 
+    WD = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"]
+
     # 每天的独立页面
     for idx, (date, content) in enumerate(reports):
         nav = ['<a href="index.html">← 返回首页</a>']
@@ -254,31 +256,43 @@ def build():
             nav.append(f'<a href="{dates[idx-1]}.html">更新的一天 →</a>')
         if idx + 1 < len(dates):
             nav.append(f'<a href="{dates[idx+1]}.html">← 更早的一天</a>')
-        body = f'<div class="nav">{" ".join(nav)}</div><article>{content}</article>'
+        body = (f'<div class="nav">{" ".join(nav)}</div>'
+                f'<div class="card brief"><article>{content}</article></div>')
         write(f"{date}.html", f"{date} · {SITE_TITLE}", date, body, "daily")
 
-    # 首页：当前晨报全文 + 往期列表
+    # 首页：Hero + 今日晨报全文 + 往期列表
     if reports:
         cur_date, cur_html = reports[0]
-        current = ('<section class="current">'
-                   '<div class="section-head"><h2>当前晨报</h2>'
+        n = len(load_sources())
+        wd = WD[datetime.date.fromisoformat(cur_date).weekday()]
+        hero = ('<header class="hero">'
+                f'<div class="eyebrow">{cur_date} {wd} · 每日更新</div>'
+                '<h1>今天，AI 圈发生了什么？</h1>'
+                f'<p class="lead">自动汇总 {n} 个信息源，经 AI 筛选与摘要，'
+                '为你留下值得读的部分。</p></header>')
+        current = ('<section>'
+                   '<div class="section-head"><h2>今日晨报</h2>'
                    f'<span class="date">{cur_date}</span></div>'
-                   f'<div class="brief">{cur_html}</div></section>')
-        past_items = "".join(
-            f'<li><a href="{d}.html"><span class="d">{d}</span>'
-            f'<span class="x">{html.escape(first_summary(c))}</span></a></li>'
-            for d, c in reports[1:])
-        if past_items:
-            past = ('<section class="past">'
+                   f'<div class="card brief">{cur_html}</div></section>')
+        rows = []
+        for d, c in reports[1:]:
+            wd2 = WD[datetime.date.fromisoformat(d).weekday()]
+            rows.append(f'<li><a href="{d}.html"><span class="d">{d}</span>'
+                        f'<span class="wd">{wd2}</span>'
+                        f'<span class="x">{html.escape(first_summary(c))}</span>'
+                        f'<span class="chev">→</span></a></li>')
+        if rows:
+            past = ('<section>'
                     f'<div class="section-head"><h2>往期晨报</h2>'
                     f'<span class="count">共 {len(reports)-1} 期</span></div>'
-                    f'<ul class="archive">{past_items}</ul></section>')
+                    f'<ul class="archive">{"".join(rows)}</ul></section>')
         else:
-            past = ('<section class="past"><div class="section-head"><h2>往期晨报</h2></div>'
+            past = ('<section><div class="section-head"><h2>往期晨报</h2></div>'
                     '<p class="meta">还没有往期，明天见。</p></section>')
-        index_body = current + past
+        index_body = hero + current + past
     else:
-        index_body = '<div class="brief"><p class="meta">还没有晨报，等第一次运行后就会出现。</p></div>'
+        index_body = ('<header class="hero"><h1>☀️ AI 晨报</h1>'
+                      '<p class="lead">还没有晨报，等第一次运行后就会出现。</p></header>')
     write("index.html", SITE_TITLE, "每日 AI 前沿资讯", index_body, "daily")
 
     # 工作流页 / 资讯源页
