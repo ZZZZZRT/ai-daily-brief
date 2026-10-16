@@ -1,4 +1,4 @@
-/* 站点交互：工作流可拖动节点 + 弹窗；资讯源历史弹窗 */
+/* 站点交互：工作流（横向节点 + 左右连接点 + 拖动 + 弹窗）；资讯源历史弹窗 */
 (function () {
   "use strict";
 
@@ -39,57 +39,77 @@
     if (m) m.classList.remove("open");
   }
 
-  /* ---------------- 工作流：可拖动节点 + 连线 ---------------- */
+  /* ---------------- 工作流 ---------------- */
   function initFlow() {
     var canvas = document.getElementById("flowCanvas");
     var svg = document.getElementById("flowLinks");
     var nodes = window.WORKFLOW_NODES;
     if (!canvas || !svg || !nodes || !nodes.length) return;
 
-    var NW = 208, NH = 86, GX = 46, GY = 54;
-    var W = canvas.clientWidth || 900;
-    var cols = W < 560 ? 1 : (W < 1000 ? 2 : 3);
-    var rows = Math.ceil(nodes.length / cols);
-    var totalW = cols * NW + (cols - 1) * GX;
-    var startX = Math.max(6, Math.round((W - totalW) / 2));
-    canvas.style.height = (rows * NH + (rows - 1) * GY + 24) + "px";
+    var NW = 186, GAP = 40, PAD = 26, MINH = 320;
 
     var els = nodes.map(function (n, i) {
-      var r = Math.floor(i / cols), c = i % cols;
       var el = document.createElement("div");
-      el.className = "node";
-      el.style.left = (startX + c * (NW + GX)) + "px";
-      el.style.top = (12 + r * (NH + GY)) + "px";
-      el.innerHTML = '<span class="node-dot">' + (i + 1) + "</span>" +
-        '<div class="node-text"><div class="node-title">' + esc(n.title) + "</div>" +
-        '<div class="node-sub">' + esc(n.short) + "</div></div>";
-      el._idx = i;
+      el.className = "node" + (n.ai ? " node-ai" : "");
+      el.style.width = NW + "px";
+      el._i = i;
+      el.innerHTML =
+        '<div class="node-top">' +
+          '<span class="node-dot">' + (i + 1) + "</span>" +
+          '<span class="node-title">' + esc(n.title) + "</span>" +
+          (n.ai ? '<span class="node-ai-badge">AI</span>' : "") +
+        "</div>" +
+        (n.short ? '<div class="node-sub">' + esc(n.short) + "</div>" : "") +
+        (n.dos ? '<ul class="node-dos">' +
+          n.dos.map(function (d) { return "<li>" + esc(d) + "</li>"; }).join("") +
+          "</ul>" : "");
       canvas.appendChild(el);
       return el;
     });
+
+    function layout() {
+      var maxH = 0;
+      els.forEach(function (el) { maxH = Math.max(maxH, el.offsetHeight); });
+      var H = Math.max(MINH, maxH + 90);
+      var totalW = nodes.length * NW + (nodes.length - 1) * GAP + PAD * 2;
+      var wrapW = canvas.parentElement.clientWidth || 900;
+      canvas.style.width = Math.max(totalW, wrapW) + "px";
+      canvas.style.height = H + "px";
+      els.forEach(function (el) {
+        el.style.left = (PAD + el._i * (NW + GAP)) + "px";
+        el.style.top = ((H - el.offsetHeight) / 2) + "px";
+      });
+    }
 
     function redraw() {
       var w = canvas.clientWidth, h = canvas.clientHeight;
       svg.setAttribute("width", w);
       svg.setAttribute("height", h);
       svg.setAttribute("viewBox", "0 0 " + w + " " + h);
-      var parts = [];
-      for (var i = 0; i < els.length - 1; i++) {
-        var a = els[i], b = els[i + 1];
-        var ax = a.offsetLeft + a.offsetWidth / 2, ay = a.offsetTop + a.offsetHeight;
-        var bx = b.offsetLeft + b.offsetWidth / 2, by = b.offsetTop;
-        var d = "M" + ax + "," + ay + " C" + ax + "," + (ay + 30) + " " +
-                bx + "," + (by - 30) + " " + bx + "," + by;
-        parts.push('<path class="link" marker-end="url(#arrow)" d="' + d + '" />');
+      var parts = ['<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" ' +
+        'markerWidth="7" markerHeight="7" orient="auto-start-reverse">' +
+        '<path d="M0,0 L10,5 L0,10 z" fill="#b7c6e6"/></marker></defs>'];
+      var dots = [];
+      for (var i = 0; i < els.length; i++) {
+        var el = els[i];
+        var cy = el.offsetTop + el.offsetHeight / 2;
+        var lx = el.offsetLeft, rx = el.offsetLeft + el.offsetWidth;
+        dots.push('<circle cx="' + lx + '" cy="' + cy + '" r="4"/>');
+        dots.push('<circle cx="' + rx + '" cy="' + cy + '" r="4"/>');
+        if (i < els.length - 1) {
+          var nx2 = els[i + 1].offsetLeft;
+          var ny2 = els[i + 1].offsetTop + els[i + 1].offsetHeight / 2;
+          parts.push('<path class="link" marker-end="url(#arrow)" d="M' + rx + "," + cy +
+            " L" + nx2 + "," + ny2 + '"/>');
+        }
       }
-      svg.innerHTML = '<defs><marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" ' +
-        'markerWidth="6" markerHeight="6" orient="auto-start-reverse">' +
-        '<path d="M0,0 L10,5 L0,10 z" fill="#b7c6e6"/></marker></defs>' + parts.join("");
+      svg.innerHTML = parts.join("") + '<g class="dots">' + dots.join("") + "</g>";
     }
 
     els.forEach(function (el) {
       var sx, sy, ox, oy, moved = false, dragging = false;
       el.addEventListener("pointerdown", function (e) {
+        if (e.target.closest("a")) return;
         dragging = true; moved = false;
         try { el.setPointerCapture(e.pointerId); } catch (err) {}
         sx = e.clientX; sy = e.clientY; ox = el.offsetLeft; oy = el.offsetTop;
@@ -99,14 +119,16 @@
         if (!dragging) return;
         var dx = e.clientX - sx, dy = e.clientY - sy;
         if (Math.abs(dx) + Math.abs(dy) > 4) moved = true;
-        el.style.left = Math.max(0, ox + dx) + "px";
-        el.style.top = Math.max(0, oy + dy) + "px";
+        var nlx = Math.max(0, Math.min(ox + dx, canvas.clientWidth - el.offsetWidth));
+        var nly = Math.max(0, Math.min(oy + dy, canvas.clientHeight - el.offsetHeight));
+        el.style.left = nlx + "px";
+        el.style.top = nly + "px";
         redraw();
       });
       el.addEventListener("pointerup", function () {
         if (!dragging) return;
         dragging = false; el.classList.remove("dragging");
-        if (!moved) openNodeModal(nodes[el._idx]);
+        if (!moved) openNodeModal(nodes[el._i]);
       });
       el.addEventListener("pointercancel", function () {
         dragging = false; el.classList.remove("dragging");
@@ -114,11 +136,18 @@
     });
 
     function openNodeModal(n) {
-      openModal(n.title, '<p class="modal-num">步骤 ' + (n.idx) + "</p><p>" + esc(n.detail) + "</p>");
+      var html = '<p class="modal-num">步骤 ' + n.idx + (n.ai ? " · AI 节点" : " · 非 AI") + "</p>";
+      if (n.detail) html += "<p>" + esc(n.detail) + "</p>";
+      if (n.dos) {
+        html += '<p class="modal-num" style="margin-top:14px">AI 在这里做了：</p><ul class="modal-dos">' +
+          n.dos.map(function (d) { return "<li>" + esc(d) + "</li>"; }).join("") + "</ul>";
+      }
+      openModal(n.title, html);
     }
 
+    layout();
     redraw();
-    window.addEventListener("resize", redraw);
+    window.addEventListener("resize", function () { layout(); redraw(); });
   }
 
   /* ---------------- 资讯源：点击行弹历史 ---------------- */
@@ -133,7 +162,7 @@
       return cache;
     }
     root.addEventListener("click", function (e) {
-      if (e.target.closest(".source-name")) return; // 点标题 -> 跳外链
+      if (e.target.closest(".source-name")) return;
       var row = e.target.closest(".source-row");
       if (!row) return;
       e.preventDefault();

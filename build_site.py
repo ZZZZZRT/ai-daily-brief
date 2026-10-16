@@ -256,21 +256,24 @@ def build_sources_body():
 def build_workflow_body():
     n = len(load_sources())
     nodes = [
-        {"title": "定时触发", "short": SCHEDULE_TEXT,
+        {"title": "定时触发", "short": "每天 08:00", "ai": False,
          "detail": f"云端 GitHub Actions 按 cron 定时启动，无需你的电脑开机。当前设定：{SCHEDULE_TEXT}。"},
-        {"title": "采集", "short": f"{n} 个信息源",
+        {"title": "采集", "short": f"{n} 个信息源", "ai": False,
          "detail": f"并行读取 {n} 个信息源的 RSS / 公开接口，取回每源最新约 25 条。"},
-        {"title": "清洗", "short": "去重 + 鲜度过滤",
-         "detail": f"按标题去重，并只保留最近 {MAX_AGE_DAYS} 天发布的资讯。"},
-        {"title": "AI 筛选与摘要", "short": MODEL_TEXT,
-         "detail": f"{MODEL_TEXT} 依据“兴趣画像”筛选、分组，输出结构化摘要与“为什么重要”。"},
-        {"title": "推送", "short": "飞书推送",
-         "detail": "生成飞书交互卡片，推送到你的飞书群，链接可直接点开。"},
-        {"title": "存档与建站", "short": "结构化数据 + 网站",
-         "detail": "保存结构化数据与 Markdown 存档，并重新生成这个网站。"},
+        {"title": "清洗", "short": "去重 + 最近 3 天", "ai": False,
+         "detail": f"按标题去重，并只保留最近 {MAX_AGE_DAYS} 天发布的资讯。全部由规则代码完成。"},
+        {"title": "筛选与摘要", "short": MODEL_TEXT, "ai": True,
+         "dos": ["按兴趣画像判断相关性，丢弃无关内容", "把条目分类到各板块",
+                 "选出 3–5 条今日头条", "改写中文标题", "撰写一句话摘要", "撰写“为什么重要”"],
+         "detail": "整个流程里唯一由 AI 完成的节点，使用 DeepSeek。"},
+        {"title": "推送", "short": "飞书", "ai": False,
+         "detail": "把同一份数据转成 Markdown，机械推送到飞书群，链接可直接点开。"},
+        {"title": "存档与建站", "short": "JSON + 网站", "ai": False,
+         "detail": "保存结构化数据与 Markdown 存档，并渲染生成这个网站。"},
     ]
     for i, nd in enumerate(nodes, 1):
         nd["idx"] = i
+
     facts = [("运行频率", SCHEDULE_TEXT), ("信息源", f"{n} 个"),
              ("AI 模型", MODEL_TEXT), ("鲜度", f"最近 {MAX_AGE_DAYS} 天"),
              ("输出", "飞书推送 · 网站")]
@@ -279,12 +282,37 @@ def build_workflow_body():
         facts_html.append(f'<div class="fact"><span class="fact-k">{k}</span>'
                           f'<span class="fact-v">{v}</span></div>')
     facts_html.append('</div>')
+
+    legend = ('<div class="flow-legend">'
+              '<span class="lg"><i class="white"></i>非 AI（规则 / 代码）</span>'
+              '<span class="lg"><i class="blue"></i>AI（DeepSeek）</span>'
+              '<span class="lg lg-hint">可拖动节点 · 点击看细节</span></div>')
+
+    ai_notes = (
+        '<div class="ai-notes">'
+        '<section><h2>AI 在这个流程里做了什么</h2><ul>'
+        '<li>判断相关性：按“兴趣画像”从候选里挑出值得看的</li>'
+        '<li>分类打标：分配到 今日头条 / 模型与产品 / 工具与Skills / 研究与论文 / 行业动态</li>'
+        '<li>选出 3–5 条今日头条</li>'
+        '<li>改写中文标题、撰写一句话摘要与“为什么重要”</li>'
+        '</ul></section>'
+        '<section><h2>AI 的能力边界</h2><ul>'
+        '<li>只看标题 + ≤180 字摘要，<b>未读正文全文</b></li>'
+        '<li><b>不联网核实</b>，不保证事实准确</li>'
+        '<li>“为什么重要”是<b>观点</b>，可能有偏差</li>'
+        '<li>可能漏掉重要条目、或误判相关性</li>'
+        '<li>分类不稳定：同一条不同天可能归到不同板块</li>'
+        '<li>来源与时间由代码按链接回填，非 AI 生成</li>'
+        '</ul></section></div>')
+
     return ('<h1 class="page-title">工作流</h1>'
-            '<p class="page-sub">从采集到发布的完整自动化流程。可<b>拖动</b>节点重新排列，'
-            '点击<b>节点</b>查看细节。</p>'
+            '<p class="page-sub">从采集到发布的完整流程。<b>白底</b>为规则 / 代码，'
+            '<b>蓝色</b>为由 AI（DeepSeek）完成的节点。'
+            '节点<b>左右连接点</b>依次相连，可拖动、点击查看细节。</p>'
+            + legend +
             '<div class="flow-wrap"><svg class="flow-links" id="flowLinks"></svg>'
             '<div class="flow-canvas" id="flowCanvas"></div></div>'
-            + "".join(facts_html) +
+            + "".join(facts_html) + ai_notes +
             '<script>window.WORKFLOW_NODES = ' +
             json.dumps(nodes, ensure_ascii=False) + ';</script>')
 
