@@ -11,20 +11,17 @@ import os, json, re, sys, datetime, urllib.request, concurrent.futures
 
 import feedparser
 
-# ── 1. 信息源清单 (已实测可用) ──────────────────────────────
-SOURCES = [
-    ("OpenAI 官方",        "https://openai.com/blog/rss.xml"),
-    ("Google DeepMind",    "https://deepmind.google/blog/rss.xml"),
-    ("Google AI Blog",     "https://blog.google/technology/ai/rss/"),
-    ("HuggingFace Blog",   "https://huggingface.co/blog/feed.xml"),
-    ("arXiv cs.AI",        "http://export.arxiv.org/rss/cs.AI"),
-    ("TLDR AI",            "https://tldr.tech/api/rss/ai"),
-    ("Ben's Bites",        "https://www.bensbites.com/feed"),
-    ("Simon Willison",     "https://simonwillison.net/atom/everything/"),
-    ("MIT Tech Review AI", "https://www.technologyreview.com/topic/artificial-intelligence/feed"),
-    ("量子位",             "https://www.qbitai.com/feed"),
-    ("Hacker News",        "https://hnrss.org/frontpage"),
-]
+# ── 1. 信息源清单（读取 config/sources.json，便于统一维护）────
+BASE = os.path.dirname(os.path.abspath(__file__))
+
+
+def load_sources():
+    path = os.path.join(BASE, "config", "sources.json")
+    with open(path, encoding="utf-8") as f:
+        return [(s["name"], s["url"]) for s in json.load(f)]
+
+
+SOURCES = load_sources()
 
 # ── 2. 兴趣画像 (决定什么算重要) ────────────────────────────
 INTERESTS = """我是 AI 从业者。我关心，按优先级：

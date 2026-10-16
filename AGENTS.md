@@ -17,6 +17,7 @@
 | `.github/workflows/daily.yml` | 定时任务说明书（cron、环境变量、存档提交） |
 | `reports/brief-日期.md` | 每日晨报存档（Actions 每天自动提交回仓库） |
 | `build_site.py` | 网站生成器（零依赖）：把 `reports/` 渲染成 `docs/` 静态网站 |
+| `config/sources.json` | **信息源清单**（`brief.py` 采集与网站"资讯源"页共用） |
 | `templates/style.css` | **网站样式**（前端改动入口） |
 | `templates/page.html` | **页面骨架**（前端改动入口），占位符 `{{TITLE}} {{CSS_URL}} {{SITE}} {{SUB}} {{BODY}}` |
 | `docs/` | 生成的网站（首页 + 每日页面 + style.css，Actions 自动更新） |
@@ -34,6 +35,11 @@
 - 网址：部署成功后，将 Worker 的 URL 填入 `brief.py` 的 `SITE_URL`。
 - 每日 Actions 提交 `docs/` 后，Cloudflare 自动重新构建部署。
 
+## 网站结构
+
+- 顶部标签栏（`templates/page.html` 的 `.tabs`）：`AI日报`（index.html）、`工作流`（workflow.html）、`资讯源`（sources.html）。
+- `build_site.py` 生成：`index.html`（当前晨报 + 往期列表）、每日页 `<日期>.html`、`workflow.html`、`sources.html`。
+
 ## 本地 / 线上边界（重要，别搞错）
 
 - 每天运行时，GitHub Actions **只使用 GitHub 仓库里的代码，完全不使用本地文件**。
@@ -45,7 +51,7 @@
 
 | 想改什么 | 改哪里 |
 |---|---|
-| 加/删信息源 | `brief.py` 的 `SOURCES`（每行 `("名称", "RSS地址")`） |
+| 加/删信息源 | `config/sources.json`（每项 `name` / `url` / `category` / `note`）；采集与"资讯源"页都会同步 |
 | 调兴趣 / 筛选偏好 | `brief.py` 的 `INTERESTS` |
 | 改输出模板（分组、字数、结构） | `brief.py` 里 `call_deepseek` 的 `prompt` 中"要求"部分 |
 | **改网站样式** | `templates/style.css` |

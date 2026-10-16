@@ -1,0 +1,16 @@
+[
+  {"name": "OpenAI 官方", "url": "https://openai.com/blog/rss.xml", "category": "官方实验室", "note": "模型与产品发布"},
+  {"name": "Google DeepMind", "url": "https://deepmind.google/blog/rss.xml", "category": "官方实验室", "note": "研究博客"},
+  {"name": "Google AI Blog", "url": "https://blog.google/technology/ai/rss/", "category": "官方实验室", "note": "AI 产品与动态"},
+  {"name": "HuggingFace Blog", "url": "https://huggingface.co/blog/feed.xml", "category": "官方实验室", "note": "开源模型与工具"},
+
+  {"name": "arXiv cs.AI", "url": "http://export.arxiv.org/rss/cs.AI", "category": "研究论文", "note": "AI 预印本"},
+
+  {"name": "TLDR AI", "url": "https://tldr.tech/api/rss/ai", "category": "媒体 & Newsletter", "note": "每日技术摘要"},
+  {"name": "Ben's Bites", "url": "https://www.bensbites.com/feed", "category": "媒体 & Newsletter", "note": "创作者视角"},
+  {"name": "Simon Willison", "url": "https://simonwillison.net/atom/everything/", "category": "媒体 & Newsletter", "note": "工程实践"},
+  {"name": "MIT Tech Review AI", "url": "https://www.technologyreview.com/topic/artificial-intelligence/feed", "category": "媒体 & Newsletter", "note": "深度报道"},
+  {"name": "量子位", "url": "https://www.qbitai.com/feed", "category": "媒体 & Newsletter", "note": "中文 AI 媒体"},
+
+  {"name": "Hacker News", "url": "https://hnrss.org/frontpage", "category": "开发者社区", "note": "技术热帖"}
+]

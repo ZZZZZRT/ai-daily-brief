@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>工作流 · ☀️ AI 晨报</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <nav class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="index.html">☀️ AI 晨报</a>
+      <div class="tabs">
+        <a class="tab " href="index.html">AI日报</a>
+        <a class="tab active" href="workflow.html">工作流</a>
+        <a class="tab " href="sources.html">资讯源</a>
+      </div>
+    </div>
+  </nav>
+  <main class="container">
+<h1 class="page-title">工作流</h1><p class="page-sub">从采集到发布的完整自动化流程。</p><ol class="flow"><li class="step"><span class="step-idx">1</span><div class="step-body"><h3>定时触发</h3><p>每天 08:00（北京时间），云端的 GitHub Actions 自动启动（无需你的电脑开机）。</p></div></li><li class="step"><span class="step-idx">2</span><div class="step-body"><h3>采集</h3><p>并行读取 <b>11</b> 个信息源：官方博客、媒体、论文与社区。</p></div></li><li class="step"><span class="step-idx">3</span><div class="step-body"><h3>清洗</h3><p>按标题去重，并只保留最近 <b>3</b> 天发布的资讯。</p></div></li><li class="step"><span class="step-idx">4</span><div class="step-body"><h3>AI 筛选与摘要</h3><p>DeepSeek（deepseek-chat） 依据“兴趣画像”筛选、分组，写出中文摘要与“为什么重要”。</p></div></li><li class="step"><span class="step-idx">5</span><div class="step-body"><h3>推送</h3><p>生成飞书交互卡片，推送到你的飞书群（链接可直接点开）。</p></div></li><li class="step"><span class="step-idx">6</span><div class="step-body"><h3>存档与建站</h3><p>保存为 Markdown 存档，并重新生成这个网站（首页 + 历史）。</p></div></li></ol><div class="facts"><div class="fact"><span class="fact-k">运行频率</span><span class="fact-v">每天 08:00（北京时间）</span></div><div class="fact"><span class="fact-k">信息源</span><span class="fact-v">11 个</span></div><div class="fact"><span class="fact-k">AI 模型</span><span class="fact-v">DeepSeek（deepseek-chat）</span></div><div class="fact"><span class="fact-k">鲜度</span><span class="fact-v">最近 3 天</span></div><div class="fact"><span class="fact-k">输出</span><span class="fact-v">飞书推送 · 网站</span></div></div>
+    <footer>由 GitHub Actions 自动生成 · 数据归你所有</footer>
+  </main>
+</body>
+</html>
