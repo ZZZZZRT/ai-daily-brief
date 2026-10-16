@@ -148,11 +148,11 @@ def render_headline(it):
     if it.get("ts"):
         meta.append(f'<span class="hl-time">{_h(_time(it["ts"]))}</span>')
     meta_html = f'<div class="hl-meta">{"".join(meta)}</div>' if meta else ''
-    why = f'<p class="hl-why">💡 {_h(it.get("why"))}</p>' if it.get("why") else ''
+    why = f'<p class="hl-why">💡 {_h((it.get("why") or "").strip())}</p>' if it.get("why") else ''
     url = _h(it.get("url") or "#")
-    return (f'<div class="headline">{meta_html}'
+    return ('<article class="headline">' + meta_html +
             f'<h3 class="hl-title"><a href="{url}" target="_blank" rel="noopener">{_h(it.get("title"))}</a></h3>'
-            f'<p class="hl-summary">{_h(it.get("summary"))}</p>{why}</div>')
+            f'<p class="hl-summary">{_h(it.get("summary"))}</p>{why}</article>')
 
 
 def render_news(it):
@@ -164,24 +164,33 @@ def render_news(it):
 
 
 def render_brief(rep):
+    """头条网格 + 其余板块双栏。"""
     data = rep.get("data")
     if not data:
-        return f'<article class="prose">{rep.get("html") or ""}</article>'
-    parts = []
-    for si, sec in enumerate(data.get("sections", [])):
-        name = sec.get("name", "")
-        top = (name == "今日头条" or si == 0)
-        parts.append(f'<h2>{EMOJI.get(name, "")} {_h(name)}</h2>')
-        items = sec.get("items", [])
-        if top:
-            for it in items:
-                parts.append(render_headline(it))
-        else:
-            parts.append('<ul class="news-list">')
-            for it in items:
-                parts.append(render_news(it))
-            parts.append('</ul>')
-    return '<article class="brief-body">' + "".join(parts) + '</article>'
+        return f'<article class="prose card">{rep.get("html") or ""}</article>'
+    sections = data.get("sections", [])
+    if not sections:
+        return ""
+    out = []
+    top = sections[0]
+    out.append(f'<h2 class="block-title">{EMOJI.get(top.get("name", ""), "")} {_h(top.get("name", ""))}</h2>')
+    out.append('<div class="hl-grid">')
+    for it in top.get("items", []):
+        out.append(render_headline(it))
+    out.append('</div>')
+
+    rest = sections[1:]
+    if rest:
+        out.append('<div class="sec-grid">')
+        for sec in rest:
+            out.append('<section class="sec-card">')
+            out.append(f'<h2>{EMOJI.get(sec.get("name", ""), "")} {_h(sec.get("name", ""))}</h2>')
+            out.append('<ul class="news-list">')
+            for it in sec.get("items", []):
+                out.append(render_news(it))
+            out.append('</ul></section>')
+        out.append('</div>')
+    return "".join(out)
 
 
 def first_summary(rep):
@@ -313,8 +322,10 @@ def build():
             nav.append(f'<a href="{dates[idx-1]}.html">更新的一天 →</a>')
         if idx + 1 < len(dates):
             nav.append(f'<a href="{dates[idx+1]}.html">← 更早的一天</a>')
-        body = (f'<div class="nav">{" ".join(nav)}</div>'
-                f'<div class="card brief">{render_brief(rep)}</div>')
+        wd = WD[datetime.date.fromisoformat(rep["date"]).weekday()]
+        body = (f'<div class="nav">{" ".join(nav)}'
+                f'<span class="nav-date">{rep["date"]} {wd}</span></div>'
+                + render_brief(rep))
         write(f"{rep['date']}.html", f"{rep['date']} · {SITE_TITLE}", rep["date"], body, "daily")
 
     # 首页
@@ -323,15 +334,16 @@ def build():
         cur_date = rep0["date"]
         n = len(load_sources())
         wd = WD[datetime.date.fromisoformat(cur_date).weekday()]
-        hero = ('<header class="hero">'
-                f'<div class="eyebrow">{cur_date} {wd} · 每日更新</div>'
-                '<h1>今天，AI 圈发生了什么？</h1>'
-                f'<p class="lead">自动汇总 {n} 个信息源，经 AI 筛选与摘要，'
-                '为你留下值得读的部分。</p></header>')
-        current = ('<section>'
-                   '<div class="section-head"><h2>今日晨报</h2>'
-                   f'<span class="date">{cur_date}</span></div>'
-                   f'<div class="card brief">{render_brief(rep0)}</div></section>')
+        hero = ('<div class="hero-bar">'
+                f'<span class="hb-date">{cur_date}<span class="hb-wd">{wd}</span></span>'
+                '<span class="hb-sep">·</span>'
+                '<span class="hb-tag">每日更新</span>'
+                '<span class="hb-sep">·</span>'
+                '<span class="hb-title">今天，AI 圈发生了什么？</span>'
+                '<span class="hb-sep">·</span>'
+                f'<span class="hb-sub">自动汇总 {n} 个信息源，经 AI 筛选与摘要，为你留下值得读的部分。</span>'
+                '</div>')
+        parts = [hero, render_brief(rep0)]
         rows = []
         for rep in reports[1:]:
             wd2 = WD[datetime.date.fromisoformat(rep["date"]).weekday()]
@@ -341,14 +353,14 @@ def build():
                         f'<span class="x">{html.escape(first_summary(rep))}</span>'
                         f'<span class="chev">→</span></a></li>')
         if rows:
-            past = ('<section>'
-                    f'<div class="section-head"><h2>往期晨报</h2>'
-                    f'<span class="count">共 {len(reports)-1} 期</span></div>'
-                    f'<ul class="archive">{"".join(rows)}</ul></section>')
+            parts.append('<section>'
+                         '<div class="section-head"><h2>往期晨报</h2>'
+                         f'<span class="count">共 {len(reports)-1} 期</span></div>'
+                         f'<ul class="archive">{"".join(rows)}</ul></section>')
         else:
-            past = ('<section><div class="section-head"><h2>往期晨报</h2></div>'
-                    '<p class="meta">还没有往期，明天见。</p></section>')
-        index_body = hero + current + past
+            parts.append('<section><div class="section-head"><h2>往期晨报</h2></div>'
+                         '<p class="meta">还没有往期，明天见。</p></section>')
+        index_body = "".join(parts)
     else:
         index_body = ('<header class="hero"><h1>☀️ AI 晨报</h1>'
                       '<p class="lead">还没有晨报，等第一次运行后就会出现。</p></header>')
