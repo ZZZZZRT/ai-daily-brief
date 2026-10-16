@@ -225,21 +225,15 @@ footer{color:var(--muted-2);font-size:12px;text-align:center;margin-top:64px;let
 .sec-card h2{display:flex;align-items:center;gap:.4em;font-size:16px;font-weight:650;letter-spacing:-.01em;margin:0 0 6px}
 
 .news-list{list-style:none;padding:0;margin:.2em 0 0}
-.news{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line-2)}
-.news:last-child{border-bottom:none;padding-bottom:2px}
-.news-main{flex:1;min-width:0;display:flex;align-items:baseline;gap:10px}
-.news-title{font-weight:600;font-size:14.5px;color:var(--fg);white-space:nowrap;overflow:hidden;
-  text-overflow:ellipsis;flex:none;max-width:54%}
+.news{padding:11px 0;border-bottom:1px solid var(--line-2)}
+.news:last-child{border-bottom:none;padding-bottom:3px}
+.news-head{display:flex;align-items:baseline;gap:8px;margin-bottom:3px}
+.news-title{font-weight:600;font-size:14px;line-height:1.45;color:var(--fg);flex:1;min-width:0}
 .news-title:hover{color:var(--accent)}
-.news-sum{color:var(--muted);font-size:13px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.news .chip{flex:none}
+.news-sum{color:var(--muted);font-size:13px;line-height:1.5;margin:0;overflow:hidden;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.news .chip{flex:none;font-size:11px;padding:1px 8px}
 .nav-date{margin-left:auto;color:var(--muted);font-size:13px}
-@media (max-width:640px){
-  .news-main{display:block}
-  .news-title{white-space:normal;max-width:none}
-  .news-sum{display:block;white-space:normal;margin-top:2px}
-  .news{align-items:flex-start}
-}
 
 /* 滚动条 */
 .modal-body::-webkit-scrollbar{width:10px}

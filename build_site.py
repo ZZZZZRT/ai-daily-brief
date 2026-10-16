@@ -158,9 +158,9 @@ def render_headline(it):
 def render_news(it):
     chip = f'<span class="chip">{_h(it["source"])}</span>' if it.get("source") else ''
     url = _h(it.get("url") or "#")
-    return ('<li class="news"><div class="news-main">'
-            f'<a class="news-title" href="{url}" target="_blank" rel="noopener">{_h(it.get("title"))}</a>'
-            f'<span class="news-sum">{_h(it.get("summary"))}</span></div>{chip}</li>')
+    return ('<li class="news">'
+            f'<div class="news-head"><a class="news-title" href="{url}" target="_blank" rel="noopener">{_h(it.get("title"))}</a>{chip}</div>'
+            f'<p class="news-sum">{_h(it.get("summary"))}</p></li>')
 
 
 def render_brief(rep):
