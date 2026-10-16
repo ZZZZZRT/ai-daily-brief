@@ -7,13 +7,17 @@
   <link rel="stylesheet" href="{{CSS_URL}}">
 </head>
 <body>
-  <div class="wrap">
-    <header class="site">
-      <h1>{{SITE}}</h1>
-      <span class="sub">{{SUB}}</span>
-    </header>
+  <nav class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="index.html">{{SITE}}</a>
+      <div class="tabs">
+        <a class="tab active" href="index.html">AI日报</a>
+      </div>
+    </div>
+  </nav>
+  <main class="container">
 {{BODY}}
     <footer>由 GitHub Actions 自动生成 · 数据归你所有</footer>
-  </div>
+  </main>
 </body>
 </html>

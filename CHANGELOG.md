@@ -1,5 +1,13 @@
 # 变更记录
 
+## 2026-10-16 · 前端改版（白色系 + 首页改版）
+- 整体改为白色系主题。
+- 顶部新增标签栏（首个 tab「AI日报」，`.topbar` / `.tab`）。
+- 首页改为：顶部「当前晨报」全文 + 下方「往期晨报」列表（点击查看）。
+- 容器宽度自适应，左右固定边距（`--side`），单列纵向排布。
+- 样式与结构集中在 `templates/style.css`、`templates/page.html`。
+
+
 ## 2026-10-16 · 前端模板化 + 托管暂缓
 - 把前端从 Python 中抽离：新增 `templates/style.css`（样式）与 `templates/page.html`（页面骨架，占位符）。
 - `build_site.py` 改为读取 `templates/` 渲染，行为不变。

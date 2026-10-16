@@ -1,22 +1,81 @@
-:root{--bg:#0f1115;--card:#171a21;--fg:#e6e8ec;--muted:#9aa3b2;--accent:#4f8cff;--line:#252a34}
-@media (prefers-color-scheme:light){:root{--bg:#f5f6f8;--card:#fff;--fg:#1a1d23;--muted:#666e7a;--accent:#2563eb;--line:#e5e7eb}}
+:root{
+  --bg:#ffffff;
+  --fg:#1a1d23;
+  --muted:#6b7280;
+  --accent:#2563eb;
+  --accent-soft:#eef2ff;
+  --line:#e8eaed;
+  --hover:#f8f9fb;
+  --side:32px;          /* 左右固定边距 */
+}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.7 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif}
-.wrap{max-width:760px;margin:0 auto;padding:28px 18px 80px}
-header.site{display:flex;align-items:baseline;gap:12px;margin-bottom:6px;flex-wrap:wrap}
-header.site h1{font-size:24px;margin:0}
-header.site .sub{color:var(--muted);font-size:13px}
+html,body{margin:0}
+body{
+  background:var(--bg);
+  color:var(--fg);
+  font:16px/1.75 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+}
+
+/* 顶部标签栏 */
+.topbar{
+  position:sticky;top:0;z-index:10;
+  background:rgba(255,255,255,.9);
+  -webkit-backdrop-filter:saturate(180%) blur(8px);
+  backdrop-filter:saturate(180%) blur(8px);
+  border-bottom:1px solid var(--line);
+}
+.topbar-inner{
+  display:flex;align-items:center;gap:22px;
+  height:56px;padding:0 var(--side);
+}
+.brand{font-weight:700;font-size:16px;color:var(--fg);white-space:nowrap}
+.tabs{display:flex;gap:4px}
+.tab{padding:6px 12px;border-radius:8px;color:var(--muted);font-size:14px}
+.tab:hover{color:var(--fg);text-decoration:none}
+.tab.active{background:var(--accent-soft);color:var(--accent);font-weight:600}
+
+/* 内容容器：宽度自适应，左右固定边距 */
+.container{width:100%;padding:26px var(--side) 88px}
+
 a{color:var(--accent);text-decoration:none}
 a:hover{text-decoration:underline}
-.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin:14px 0}
-.card h2{margin:.1em 0 .3em;font-size:18px}
-.card .meta{color:var(--muted);font-size:13px;margin-bottom:8px}
-.card p{margin:.4em 0}
-.card .more{color:var(--accent);font-size:14px}
-article h1{font-size:22px}
-article h2{font-size:17px;margin-top:1.4em;border-bottom:1px solid var(--line);padding-bottom:.3em}
-article li{margin:.35em 0}
+
+.section-head{display:flex;align-items:baseline;gap:10px;margin:6px 0 14px}
+.section-head h2{font-size:18px;margin:0;font-weight:700}
+.section-head .date,.section-head .count{color:var(--muted);font-size:13px}
+
+.brief{
+  background:#fff;border:1px solid var(--line);border-radius:14px;
+  padding:22px 26px;
+}
+.meta{color:var(--muted);font-size:13px}
+
+/* 文章排版 */
+article h1{font-size:22px;margin:.2em 0 .6em}
+article h2{font-size:17px;margin:1.5em 0 .5em;padding-bottom:.3em;border-bottom:1px solid var(--line)}
+article h3{font-size:15px;margin:1.2em 0 .4em}
+article ul,article ol{padding-left:1.3em;margin:.5em 0}
+article li{margin:.4em 0}
+article li>strong{font-weight:600}
 article a{word-break:break-word}
-.nav{display:flex;gap:14px;color:var(--muted);font-size:14px;margin:10px 0 22px;flex-wrap:wrap}
+article p{margin:.55em 0;color:var(--fg)}
+
+.nav{display:flex;gap:16px;align-items:baseline;color:var(--muted);font-size:14px;margin-bottom:18px;flex-wrap:wrap}
 .nav a{color:var(--muted)}
-footer{color:var(--muted);font-size:12px;text-align:center;margin-top:40px}
+
+/* 往期列表 */
+.archive{list-style:none;padding:0;margin:0;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#fff}
+.archive li+li{border-top:1px solid var(--line)}
+.archive a{display:flex;align-items:baseline;gap:16px;padding:14px 18px;color:var(--fg)}
+.archive a:hover{background:var(--hover);text-decoration:none}
+.archive .d{font-weight:600;white-space:nowrap;font-variant-numeric:tabular-nums}
+.archive .x{color:var(--muted);font-size:13.5px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+footer{color:var(--muted);font-size:12px;text-align:center;margin-top:56px}
+
+@media (max-width:560px){
+  :root{--side:18px}
+  .topbar-inner{gap:12px}
+  .brief{padding:18px 16px}
+  .archive .x{display:none}
+}

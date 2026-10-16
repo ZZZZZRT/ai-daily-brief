@@ -127,8 +127,9 @@ def build():
     reports = read_reports()
     dates = [d for d, _ in reports]
 
+    # 每天的独立页面
     for idx, (date, content) in enumerate(reports):
-        nav = ['<a href="index.html">← 全部</a>']
+        nav = ['<a href="index.html">← 返回首页</a>']
         if idx - 1 >= 0:
             nav.append(f'<a href="{dates[idx-1]}.html">更新的一天 →</a>')
         if idx + 1 < len(dates):
@@ -137,16 +138,34 @@ def build():
         open(os.path.join(SITE_DIR, f"{date}.html"), "w", encoding="utf-8").write(
             render(tpl, f"{date} · {SITE_TITLE}", "style.css", SITE_TITLE, date, body))
 
-    cards = []
-    for date, content in reports:
-        cards.append(
-            f'<div class="card"><h2><a href="{date}.html">{date}</a></h2>'
-            f'<div class="meta">AI 晨报</div>'
-            f'<p>{html.escape(first_summary(content))}…</p>'
-            f'<a class="more" href="{date}.html">阅读全文 →</a></div>')
-    if not cards:
-        cards.append('<div class="card"><p>还没有晨报，等第一次运行后就会出现。</p></div>')
-    body = f'<p class="meta">共 {len(reports)} 期</p>' + "".join(cards)
+    # 首页：顶部放当前晨报全文，下方放往期列表
+    if reports:
+        cur_date, cur_html = reports[0]
+        current = (
+            '<section class="current">'
+            '<div class="section-head"><h2>当前晨报</h2>'
+            f'<span class="date">{cur_date}</span></div>'
+            f'<div class="brief">{cur_html}</div>'
+            '</section>'
+        )
+        past_items = "".join(
+            f'<li><a href="{d}.html"><span class="d">{d}</span>'
+            f'<span class="x">{html.escape(first_summary(c))}</span></a></li>'
+            for d, c in reports[1:])
+        if past_items:
+            past = (
+                '<section class="past">'
+                f'<div class="section-head"><h2>往期晨报</h2>'
+                f'<span class="count">共 {len(reports)-1} 期</span></div>'
+                f'<ul class="archive">{past_items}</ul></section>'
+            )
+        else:
+            past = ('<section class="past"><div class="section-head"><h2>往期晨报</h2></div>'
+                    '<p class="meta">还没有往期，明天见。</p></section>')
+        body = current + past
+    else:
+        body = '<div class="brief"><p class="meta">还没有晨报，等第一次运行后就会出现。</p></div>'
+
     open(os.path.join(SITE_DIR, "index.html"), "w", encoding="utf-8").write(
         render(tpl, SITE_TITLE, "style.css", SITE_TITLE, "每日 AI 前沿资讯", body))
 
