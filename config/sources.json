@@ -10,7 +10,12 @@
   {"name": "Ben's Bites", "url": "https://www.bensbites.com/feed", "category": "媒体 & Newsletter", "note": "创作者视角"},
   {"name": "Simon Willison", "url": "https://simonwillison.net/atom/everything/", "category": "媒体 & Newsletter", "note": "工程实践"},
   {"name": "MIT Tech Review AI", "url": "https://www.technologyreview.com/topic/artificial-intelligence/feed", "category": "媒体 & Newsletter", "note": "深度报道"},
-  {"name": "量子位", "url": "https://www.qbitai.com/feed", "category": "媒体 & Newsletter", "note": "中文 AI 媒体"},
+
+  {"name": "量子位", "url": "https://www.qbitai.com/feed", "category": "中文媒体", "note": "AI 媒体"},
+  {"name": "雷锋网", "url": "https://www.leiphone.com/feed", "category": "中文媒体", "note": "AI 与科技"},
+  {"name": "InfoQ 中文", "url": "https://www.infoq.cn/feed", "category": "中文媒体", "note": "技术/AI 工程"},
+  {"name": "爱范儿", "url": "https://www.ifanr.com/feed", "category": "中文媒体", "note": "科技产品"},
+  {"name": "开源中国", "url": "https://www.oschina.net/news/rss", "category": "中文媒体", "note": "开源动态"},
 
   {"name": "Hacker News", "url": "https://hnrss.org/frontpage", "category": "开发者社区", "note": "技术热帖"}
 ]

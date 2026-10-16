@@ -11,13 +11,14 @@
 
 用法: python3 build_site.py
 """
-import os, re, glob, html, json
+import os, re, glob, html, json, shutil
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 REPORT_DIR = os.path.join(BASE, "reports")
 SITE_DIR = os.path.join(BASE, "docs")
 TEMPLATE_DIR = os.path.join(BASE, "templates")
 CONFIG_DIR = os.path.join(BASE, "config")
+DATA_DIR = os.path.join(BASE, "data")
 SITE_TITLE = "☀️ AI 晨报"
 
 # 工作流说明（与 .github/workflows/daily.yml 及 brief.py 保持一致）
@@ -132,23 +133,44 @@ def first_summary(html_content):
 
 def build_sources_body():
     sources = load_sources()
+    status = {}
+    sp = os.path.join(DATA_DIR, "sources_status.json")
+    if os.path.exists(sp):
+        try:
+            status = json.load(open(sp, encoding="utf-8"))
+        except Exception:
+            status = {}
+
     cats = {}
     for s in sources:
         cats.setdefault(s.get("category", "其他"), []).append(s)
-    order = ["官方实验室", "研究论文", "媒体 & Newsletter", "开发者社区"]
+    order = ["官方实验室", "研究论文", "媒体 & Newsletter", "中文媒体", "开发者社区"]
     keys = [c for c in order if c in cats] + [c for c in cats if c not in order]
 
     parts = ['<h1 class="page-title">资讯源</h1>',
-             f'<p class="page-sub">本站每天自动从 <b>{len(sources)}</b> 个信息源采集 AI 前沿资讯（RSS / 公开接口）。</p>',
+             f'<p class="page-sub">本站每天自动从 <b>{len(sources)}</b> 个信息源采集 AI 前沿资讯。'
+             '点击<b>标题</b>访问源站，点击<b>整行</b>查看该源的历史资讯。</p>',
              '<section class="sources">']
     for c in keys:
         items = cats[c]
         parts.append(f'<div class="source-group"><h2>{html.escape(c)}'
                      f'<span class="count">{len(items)}</span></h2><ul class="source-list">')
         for s in items:
+            st = status.get(s["name"])
+            if st:
+                dot = "ok" if st.get("ok") else "err"
+                t = (st.get("last_run") or "")[5:16].replace("T", " ")
+                st_html = f'<span class="st {dot}">● {html.escape(t)}</span>'
+                tip = f'最近抓取 {st.get("fetched", 0)} 条'
+            else:
+                st_html = '<span class="st na">● 尚未运行</span>'
+                tip = "尚无抓取记录"
             note = f'<span class="note">{html.escape(s["note"])}</span>' if s.get("note") else ''
-            parts.append(f'<li><a href="{html.escape(s["url"])}" target="_blank" '
-                         f'rel="noopener">{html.escape(s["name"])}</a>{note}</li>')
+            parts.append(
+                f'<li class="source-row" data-source="{html.escape(s["name"])}" '
+                f'title="{html.escape(tip)}">'
+                f'<a class="source-name" href="{html.escape(s["url"])}" target="_blank" '
+                f'rel="noopener">{html.escape(s["name"])}</a>{note}{st_html}</li>')
         parts.append('</ul></div>')
     parts.append('</section>')
     return "".join(parts)
@@ -156,37 +178,61 @@ def build_sources_body():
 
 def build_workflow_body():
     n = len(load_sources())
-    steps = [
-        ("定时触发", f"{SCHEDULE_TEXT}，云端的 GitHub Actions 自动启动（无需你的电脑开机）。"),
-        ("采集", f"并行读取 <b>{n}</b> 个信息源：官方博客、媒体、论文与社区。"),
-        ("清洗", f"按标题去重，并只保留最近 <b>{MAX_AGE_DAYS}</b> 天发布的资讯。"),
-        ("AI 筛选与摘要", f"{MODEL_TEXT} 依据“兴趣画像”筛选、分组，写出中文摘要与“为什么重要”。"),
-        ("推送", "生成飞书交互卡片，推送到你的飞书群（链接可直接点开）。"),
-        ("存档与建站", "保存为 Markdown 存档，并重新生成这个网站（首页 + 历史）。"),
+    nodes = [
+        {"title": "定时触发", "short": SCHEDULE_TEXT,
+         "detail": f"云端 GitHub Actions 按 cron 定时启动，无需你的电脑开机。当前设定：{SCHEDULE_TEXT}。"},
+        {"title": "采集", "short": f"{n} 个信息源",
+         "detail": f"并行读取 {n} 个信息源的 RSS / 公开接口，取回每源最新约 25 条。"},
+        {"title": "清洗", "short": "去重 + 鲜度过滤",
+         "detail": f"按标题去重，并只保留最近 {MAX_AGE_DAYS} 天发布的资讯。"},
+        {"title": "AI 筛选与摘要", "short": MODEL_TEXT,
+         "detail": f"{MODEL_TEXT} 依据“兴趣画像”筛选、分组，写出中文摘要与“为什么重要”。"},
+        {"title": "推送", "short": "飞书推送",
+         "detail": "生成飞书交互卡片，推送到你的飞书群，链接可直接点开。"},
+        {"title": "存档与建站", "short": "Markdown + 网站",
+         "detail": "把资讯保存为 Markdown 存档与结构化数据，并重新生成这个网站。"},
     ]
-    parts = ['<h1 class="page-title">工作流</h1>',
-             '<p class="page-sub">从采集到发布的完整自动化流程。</p>',
-             '<ol class="flow">']
-    for i, (t, d) in enumerate(steps, 1):
-        parts.append(f'<li class="step"><span class="step-idx">{i}</span>'
-                     f'<div class="step-body"><h3>{t}</h3><p>{d}</p></div></li>')
-    parts.append('</ol>')
+    for i, nd in enumerate(nodes, 1):
+        nd["idx"] = i
 
     facts = [("运行频率", SCHEDULE_TEXT), ("信息源", f"{n} 个"),
              ("AI 模型", MODEL_TEXT), ("鲜度", f"最近 {MAX_AGE_DAYS} 天"),
              ("输出", "飞书推送 · 网站")]
-    parts.append('<div class="facts">')
+    facts_html = ['<div class="facts">']
     for k, v in facts:
-        parts.append(f'<div class="fact"><span class="fact-k">{k}</span>'
-                     f'<span class="fact-v">{v}</span></div>')
-    parts.append('</div>')
-    return "".join(parts)
+        facts_html.append(f'<div class="fact"><span class="fact-k">{k}</span>'
+                          f'<span class="fact-v">{v}</span></div>')
+    facts_html.append('</div>')
+
+    return (
+        '<h1 class="page-title">工作流</h1>'
+        '<p class="page-sub">从采集到发布的完整自动化流程。可<b>拖动</b>节点重新排列，'
+        '点击<b>节点</b>查看细节。</p>'
+        '<div class="flow-wrap">'
+        '<svg class="flow-links" id="flowLinks"></svg>'
+        '<div class="flow-canvas" id="flowCanvas"></div>'
+        '</div>'
+        + "".join(facts_html) +
+        '<script>window.WORKFLOW_NODES = ' +
+        json.dumps(nodes, ensure_ascii=False) + ';</script>'
+    )
 
 
 def build():
     os.makedirs(SITE_DIR, exist_ok=True)
     tpl, css = load_templates()
     open(os.path.join(SITE_DIR, "style.css"), "w", encoding="utf-8").write(css)
+
+    # 前端脚本 + 数据（供资讯源历史弹窗使用）
+    shutil.copyfile(os.path.join(TEMPLATE_DIR, "app.js"),
+                    os.path.join(SITE_DIR, "app.js"))
+    os.makedirs(os.path.join(SITE_DIR, "data"), exist_ok=True)
+    items_src = os.path.join(DATA_DIR, "items.json")
+    items_dst = os.path.join(SITE_DIR, "data", "items.json")
+    if os.path.exists(items_src):
+        shutil.copyfile(items_src, items_dst)
+    else:
+        open(items_dst, "w", encoding="utf-8").write("[]")
 
     reports = read_reports()
     dates = [d for d, _ in reports]

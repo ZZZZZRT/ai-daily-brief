@@ -20,6 +20,9 @@
 | `config/sources.json` | **信息源清单**（`brief.py` 采集与网站"资讯源"页共用） |
 | `templates/style.css` | **网站样式**（前端改动入口） |
 | `templates/page.html` | **页面骨架**（前端改动入口），占位符 `{{TITLE}} {{CSS_URL}} {{SITE}} {{SUB}} {{BODY}}` |
+| `templates/app.js` | **前端交互脚本**（工作流拖动/连线/弹窗、资讯源历史弹窗） |
+| `data/items.json` | 资讯累积数据（每条含来源/标题/链接/时间），供资讯源历史弹窗使用 |
+| `data/sources_status.json` | 各源最近抓取状态（成功/失败、条数、时间） |
 | `docs/` | 生成的网站（首页 + 每日页面 + style.css，Actions 自动更新） |
 | `wrangler.jsonc` | Cloudflare Worker 配置：入口 `worker.js`、静态资源目录 `./docs` |
 | `worker.js` | Cloudflare Worker：HTTP Basic Auth + 提供静态网站 |
@@ -38,7 +41,9 @@
 ## 网站结构
 
 - 顶部标签栏（`templates/page.html` 的 `.tabs`）：`AI日报`（index.html）、`工作流`（workflow.html）、`资讯源`（sources.html）。
-- `build_site.py` 生成：`index.html`（当前晨报 + 往期列表）、每日页 `<日期>.html`、`workflow.html`、`sources.html`。
+- `build_site.py` 生成：`index.html`（当前晨报 + 往期列表）、每日页 `<日期>.html`、`workflow.html`（可拖动节点+弹窗）、`sources.html`（状态+历史弹窗）。
+- 交互脚本 `templates/app.js` 会被拷到 `docs/app.js`；资讯数据从 `docs/data/items.json` 读取（因此本地预览要用 HTTP 服务，不能用 file://）。
+- 本地预览：`cd docs && python3 -m http.server 8123`，然后打开 http://localhost:8123/ 。
 
 ## 本地 / 线上边界（重要，别搞错）
 
@@ -56,6 +61,7 @@
 | 改输出模板（分组、字数、结构） | `brief.py` 里 `call_deepseek` 的 `prompt` 中"要求"部分 |
 | **改网站样式** | `templates/style.css` |
 | **改网站结构/页头页脚** | `templates/page.html`，再 `python3 build_site.py` 重新生成 |
+| **改前端交互**（拖动/弹窗等） | `templates/app.js` |
 | 改推送时间 | `.github/workflows/daily.yml` 的 `cron`（UTC；北京 8:00 = `0 0 * * *`） |
 | 换推送渠道 | `brief.py` 的 `push_feishu` + 新增 Secrets |
 
