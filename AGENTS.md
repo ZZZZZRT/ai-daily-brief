@@ -16,8 +16,8 @@
 | `requirements.txt` | 依赖（feedparser） |
 | `.github/workflows/daily.yml` | 定时任务说明书（cron、环境变量、存档提交） |
 | `reports/brief-日期.md` | 每日晨报存档（Actions 每天自动提交回仓库） |
-| `build_site.py` | 网站生成器（零依赖）：把 `reports/` 渲染成 `site/` 静态网站 |
-| `site/` | 生成的网站（首页 + 每日页面 + style.css，Actions 自动更新） |
+| `build_site.py` | 网站生成器（零依赖）：把 `reports/` 渲染成 `docs/` 静态网站 |
+| `docs/` | 生成的网站（首页 + 每日页面 + style.css，Actions 自动更新）。GitHub Pages 从 `main` 分支 `/docs` 发布 |
 | `CHANGELOG.md` | 变更记录 |
 
 ## 本地 / 线上边界（重要，别搞错）
@@ -49,7 +49,7 @@
 ## 当前进展
 
 - [x] 第 1 期：抓取 + DeepSeek 筛选 + 飞书推送 + 存档（已上线，每天 8:00）
-- [x] 第 3 期：网站生成器 `build_site.py` → `site/`（每日自动更新）。**托管方案待定**
+- [x] 第 3 期：网站生成器 `build_site.py` → `docs/`（每日自动更新）；GitHub Pages 发布，网址 https://zzzzzrt.github.io/ai-daily-brief/
 - [ ] 第 2 期：接入 X / Reddit / 小红书 / B站 等社交源
 - [ ] 第 4 期：知识库 + AI 问答
 

@@ -38,6 +38,7 @@ INTERESTS = """我是 AI 从业者。我关心，按优先级：
 UA = {"User-Agent": "Mozilla/5.0 (compatible; ai-brief/0.1)"}
 MAX_AGE_DAYS = 3
 REPORT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "reports")
+SITE_URL = "https://zzzzzrt.github.io/ai-daily-brief/"
 
 
 def fetch(name, url):
@@ -121,6 +122,7 @@ def push_feishu(md, title):
     url = os.environ["FEISHU_WEBHOOK_URL"]
     # 飞书卡片 Markdown 不渲染 #，把标题转成加粗
     body_md = re.sub(r"^#{1,6}\s*(.+)$", r"**\1**", md, flags=re.M)
+    body_md += f"\n\n---\n🌐 [在网站上查看 / 浏览历史]({SITE_URL})"
     card = {
         "msg_type": "interactive",
         "card": {

@@ -3,7 +3,8 @@
 """
 把 reports/ 里的每日晨报 (Markdown) 生成一个静态网站。
 零第三方依赖，纯标准库。
-输出到 site/ : index.html + 每日页面 + style.css
+输出到 docs/ : index.html + 每日页面 + style.css
+（docs/ 是 GitHub Pages "从分支发布" 支持的目录）
 
 用法: python3 build_site.py
 """
@@ -11,7 +12,7 @@ import os, re, glob, html
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 REPORT_DIR = os.path.join(BASE, "reports")
-SITE_DIR = os.path.join(BASE, "site")
+SITE_DIR = os.path.join(BASE, "docs")
 SITE_TITLE = "☀️ AI 晨报"
 
 CSS = """

@@ -24,12 +24,15 @@
 `build_site.py` 把 `reports/` 里的历史晨报生成一个可浏览的网站（零第三方依赖）：
 
 ```bash
-python3 build_site.py   # 生成到 site/ ，打开 site/index.html 预览
+python3 build_site.py   # 生成到 docs/ ，打开 docs/index.html 预览
 ```
 
 - 首页：按日期列出所有期
 - 每日页：完整晨报，所有条目带原文链接，含上/下一天导航
-- 每日任务会自动重新生成并提交到 `site/`
+- 每日任务会自动重新生成并提交到 `docs/`
+
+**线上地址**：https://zzzzzrt.github.io/ai-daily-brief/
+（由 GitHub Pages 从 `main` 分支的 `/docs` 目录发布）
 
 ## 信息源
 
