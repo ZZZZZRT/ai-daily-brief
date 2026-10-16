@@ -15,7 +15,8 @@
 | `brief.py` | 引擎。含三处常改点：`SOURCES`(信息源)、`INTERESTS`(兴趣画像)、`call_deepseek` 里的 `prompt`(输出模板)；以及 `push_feishu`(飞书推送) |
 | `requirements.txt` | 依赖（feedparser） |
 | `.github/workflows/daily.yml` | 定时任务说明书（cron、环境变量、存档提交） |
-| `reports/brief-日期.md` | 每日晨报存档（Actions 每天自动提交回仓库） |
+| `reports/brief-日期.md` | 每日晨报存档（Markdown，供飞书与兼容渲染） |
+| `reports/brief-日期.json` | 每日晨报**结构化数据**（板块/条目/来源/时间），网站卡片渲染来源 |
 | `build_site.py` | 网站生成器（零依赖）：把 `reports/` 渲染成 `docs/` 静态网站 |
 | `config/sources.json` | **信息源清单**（`brief.py` 采集与网站"资讯源"页共用） |
 | `templates/style.css` | **网站样式**（前端改动入口） |

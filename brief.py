@@ -116,22 +116,38 @@ def save_data(all_items, status):
     print(f"[数据] 累积 {len(existing)} 条 -> {store_path}", file=sys.stderr)
 
 
+EMOJI = {"今日头条": "☀️", "模型与产品": "🚀", "工具与Skills": "🛠️",
+         "研究与论文": "📄", "行业动态": "💰"}
+
+
 def call_deepseek(items):
+    """让 DeepSeek 输出结构化 JSON：sections -> items。"""
     key = os.environ["DEEPSEEK_API_KEY"]
     listing = "\n".join(
         f"{n+1}. [{i['source']}] {i['title']}\n   {i['excerpt'][:180]}\n   {i['url']}"
         for n, i in enumerate(items))
     prompt = f"""{INTERESTS}
 
-下面是最近 3 天抓到的候选资讯（{len(items)} 条）。请帮我做一份《AI 晨报》：
+下面是最近 {MAX_AGE_DAYS} 天抓到的候选资讯（{len(items)} 条）。请生成一份中文《AI 晨报》，只输出 JSON，不要任何额外说明。
+
+JSON 结构：
+{{
+  "sections": [
+    {{"name": "今日头条", "items": [
+        {{"title": "中文标题", "summary": "一句话摘要", "why": "为什么重要（一句话）", "url": "原文链接"}}
+    ]}},
+    {{"name": "模型与产品", "items": [
+        {{"title": "中文标题", "summary": "一句话摘要", "url": "原文链接"}}
+    ]}}
+  ]
+}}
 
 要求：
 - 只保留与上面兴趣相关的，无关的丢弃
-- 第一行是标题 `# ☀️ AI 晨报 · YYYY-MM-DD`
-- 按"☀️今日头条 / 🚀模型与产品 / 🛠️工具与Skills / 📄研究与论文 / 💰行业动态"分组，没有内容的分组省略
-- 头条 3-5 条，每条一句中文摘要 + 一句"为什么重要"
-- 其余条目一行一条：中文标题 + 短评 + 原文链接(用 Markdown 链接)
-- 全文中文，简洁，控制在 700 字内
+- 第一节固定为 "今日头条"，3-5 条，每条都必须有 summary 和 why
+- 其余节从这几个里选："模型与产品""工具与Skills""研究与论文""行业动态"，每节 3-8 条，每条含 summary 和 url，不需要 why
+- title 用简洁中文；url 必须是候选资讯里给出的原始链接，不要编造
+- 全文中文
 
 候选资讯：
 {listing}
@@ -140,13 +156,56 @@ def call_deepseek(items):
         "model": "deepseek-chat",
         "messages": [{"role": "user", "content": prompt}],
         "temperature": 0.4,
+        "response_format": {"type": "json_object"},
     }).encode()
     req = urllib.request.Request(
         "https://api.deepseek.com/chat/completions", data=body,
         headers={"Content-Type": "application/json",
                  "Authorization": f"Bearer {key}"})
     r = json.loads(urllib.request.urlopen(req, timeout=180).read())
-    return r["choices"][0]["message"]["content"]
+    return json.loads(r["choices"][0]["message"]["content"])
+
+
+def enrich(data, all_items):
+    """按 url 补上来源与时间（数据来自实际抓取，保证准确）。"""
+    meta = {i["url"]: i for i in all_items}
+    for sec in data.get("sections", []):
+        for it in sec.get("items", []):
+            m = meta.get(it.get("url", ""))
+            if m:
+                it["source"] = m["source"]
+                it["ts"] = m["ts"].isoformat() if m["ts"] else None
+    return data
+
+
+def to_markdown(data, date):
+    """由结构化数据生成 Markdown（用于存档与飞书推送）。"""
+    out = [f"# ☀️ AI 晨报 · {date}", ""]
+    for sec in data.get("sections", []):
+        name = sec.get("name", "")
+        out.append(f"## {EMOJI.get(name, '')} {name}".strip())
+        out.append("")
+        top = (name == "今日头条")
+        for it in sec.get("items", []):
+            t = (it.get("title") or "").strip()
+            s = (it.get("summary") or "").strip()
+            u = (it.get("url") or "").strip()
+            if top:
+                out.append(f"1. **{t}**")
+                if s:
+                    out.append(f"   {s}")
+                w = (it.get("why") or "").strip()
+                if w:
+                    out.append(f"   *为什么重要：{w}*")
+            else:
+                line = f"- **{t}**"
+                if s:
+                    line += f"：{s}"
+                if u:
+                    line += f" [链接]({u})"
+                out.append(line)
+        out.append("")
+    return "\n".join(out).strip() + "\n"
 
 
 def push_feishu(md, title):
@@ -179,21 +238,26 @@ def main():
     fresh, all_items, status = collect()
     print(f"   去重后 {len(fresh)} 条（累积候选 {len(all_items)} 条）", file=sys.stderr)
     save_data(all_items, status)
-    print("② 调用 DeepSeek 生成晨报 ...", file=sys.stderr)
-    brief = call_deepseek(fresh)
-    # 去掉 AI 可能生成的标题行，统一用当天日期
-    body = re.sub(r"^\s*#\s.*$", "", brief, count=1, flags=re.M).strip()
-    brief = f"# ☀️ AI 晨报 · {today}\n\n{body}\n"
+
+    print("② 调用 DeepSeek 生成结构化晨报 ...", file=sys.stderr)
+    data = enrich(call_deepseek(fresh), all_items)
 
     os.makedirs(REPORT_DIR, exist_ok=True)
-    path = os.path.join(REPORT_DIR, f"brief-{today}.md")
-    open(path, "w", encoding="utf-8").write(brief)
-    print(f"[已存档] {path}", file=sys.stderr)
+    json_path = os.path.join(REPORT_DIR, f"brief-{today}.json")
+    with open(json_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False)
+    print(f"[已存档] {json_path}", file=sys.stderr)
+
+    md = to_markdown(data, today)
+    md = re.sub(r"^\s*#\s.*$", f"# ☀️ AI 晨报 · {today}", md, count=1, flags=re.M)
+    md_path = os.path.join(REPORT_DIR, f"brief-{today}.md")
+    open(md_path, "w", encoding="utf-8").write(md)
+    print(f"[已存档] {md_path}", file=sys.stderr)
 
     print("③ 推送飞书 ...", file=sys.stderr)
-    push_feishu(brief, f"☀️ AI 晨报 · {today}")
+    push_feishu(md, f"☀️ AI 晨报 · {today}")
     print("[已推送飞书]", file=sys.stderr)
-    print(brief)
+    print(md)
 
 
 if __name__ == "__main__":

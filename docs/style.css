@@ -85,8 +85,8 @@ a:hover{color:var(--accent-strong)}
 .brief{padding:30px 34px}
 @media (max-width:640px){ .brief{padding:20px 18px} }
 
-/* 文章排版（正文） */
-article{max-width:var(--prose-max)}
+/* 文章排版（旧版 Markdown 回退用） */
+.prose{max-width:var(--prose-max)}
 article h1{font-size:26px;letter-spacing:-.02em;margin:.1em 0 .7em}
 article h2{
   font-size:17.5px;font-weight:650;letter-spacing:-.01em;
@@ -188,6 +188,39 @@ article code{background:var(--bg-soft);border:1px solid var(--line);border-radiu
 .modal-date{color:var(--muted-2);font-size:12.5px;white-space:nowrap;font-variant-numeric:tabular-nums}
 
 footer{color:var(--muted-2);font-size:12px;text-align:center;margin-top:64px;letter-spacing:.01em}
+
+/* ============================================================
+   结构化晨报卡片
+   ============================================================ */
+.brief-body h2:first-child{margin-top:.2em}
+.chip{display:inline-flex;align-items:center;font-size:11.5px;font-weight:600;color:var(--accent-strong);
+  background:var(--accent-soft);border-radius:999px;padding:2px 9px;white-space:nowrap}
+.hl-meta{display:flex;align-items:center;gap:10px;margin:2px 0 8px}
+.hl-time{color:var(--muted-2);font-size:12.5px;font-variant-numeric:tabular-nums}
+.headline{padding:18px 0;border-bottom:1px solid var(--line-2)}
+.headline:first-of-type{padding-top:6px}
+.headline:last-child{border-bottom:none;padding-bottom:4px}
+.hl-title{font-size:18px;line-height:1.5;font-weight:650;letter-spacing:-.012em;margin:0 0 .3em}
+.hl-title a{color:var(--fg);border-bottom:none}
+.hl-title a:hover{color:var(--accent)}
+.hl-summary{color:var(--fg-soft);font-size:15px;margin:.15em 0 0;max-width:76ch}
+.hl-why{color:var(--accent-strong);background:linear-gradient(180deg,#eef2ff,#f6f8ff);
+  border:1px solid rgba(79,70,229,.14);border-radius:10px;padding:9px 13px;font-size:13.5px;
+  margin:.7em 0 0;max-width:76ch}
+.news-list{list-style:none;padding:0;margin:.3em 0 0}
+.news{display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid var(--line-2)}
+.news:last-child{border-bottom:none}
+.news-main{flex:1;min-width:0;display:flex;align-items:baseline;gap:10px}
+.news-title{font-weight:600;font-size:15px;color:var(--fg);white-space:nowrap}
+.news-title:hover{color:var(--accent)}
+.news-sum{color:var(--muted);font-size:13.5px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.news .chip{flex:none}
+@media (max-width:640px){
+  .news-main{display:block}
+  .news-title{white-space:normal}
+  .news-sum{display:block;white-space:normal;margin-top:2px}
+  .news{align-items:flex-start}
+}
 
 /* 滚动条 */
 .modal-body::-webkit-scrollbar{width:10px}

@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-把 reports/ 里的每日晨报 (Markdown) 生成一个静态网站。
+把 reports/ 里的每日晨报生成一个静态网站。
 零第三方依赖，纯标准库。
+优先读取结构化数据 reports/brief-<日期>.json（卡片渲染）；
+若只有 Markdown 则回退为文章渲染。
 模板与内容：
-    templates/style.css   样式
-    templates/page.html   页面骨架（占位符 {{TITLE}} {{CSS_URL}} {{SITE}} {{SUB}} {{BODY}} {{TAB_*}}）
-    config/sources.json   信息源清单（同时供“资讯源”页与 brief.py 使用）
-输出到 docs/ : index.html / <日期>.html / workflow.html / sources.html / style.css
+    templates/style.css / templates/page.html / templates/app.js
+    config/sources.json   信息源清单
+输出到 docs/ 。
 
 用法: python3 build_site.py
 """
@@ -21,10 +22,12 @@ CONFIG_DIR = os.path.join(BASE, "config")
 DATA_DIR = os.path.join(BASE, "data")
 SITE_TITLE = "☀️ AI 晨报"
 
-# 工作流说明（与 .github/workflows/daily.yml 及 brief.py 保持一致）
 SCHEDULE_TEXT = "每天 08:00（北京时间）"
 MODEL_TEXT = "DeepSeek（deepseek-chat）"
 MAX_AGE_DAYS = 3
+EMOJI = {"今日头条": "☀️", "模型与产品": "🚀", "工具与Skills": "🛠️",
+         "研究与论文": "📄", "行业动态": "💰"}
+WD = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"]
 
 
 def load_sources():
@@ -42,10 +45,10 @@ def render(tpl, **kw):
     out = tpl
     for k, v in kw.items():
         out = out.replace("{{" + k.upper() + "}}", str(v))
-    return re.sub(r"\{\{[A-Z_]+\}\}", "", out)  # 清理未用占位符
+    return re.sub(r"\{\{[A-Z_]+\}\}", "", out)
 
 
-# ── 极简 Markdown → HTML（只处理晨报用到的语法）──────────────
+# ── 旧版 Markdown → HTML（兼容历史存档）───────────────────────
 def _inline(s):
     s = html.escape(s)
     s = re.sub(r"`([^`]+)`", r"<code>\1</code>", s)
@@ -106,29 +109,96 @@ def md_to_html(text):
 
 
 def read_reports():
-    """返回 [(date, html_content)]，按日期倒序。"""
+    """返回 [{date, data(结构化或None), html(旧Markdown或None)}]，按日期倒序。"""
+    dates = set()
+    for p in glob.glob(os.path.join(REPORT_DIR, "brief-*.*")):
+        m = re.search(r"brief-(\d{4}-\d{2}-\d{2})\.(md|json)$", p)
+        if m:
+            dates.add(m.group(1))
     out = []
-    for path in glob.glob(os.path.join(REPORT_DIR, "brief-*.md")):
-        m = re.search(r"brief-(\d{4}-\d{2}-\d{2})\.md$", path)
-        if not m:
-            continue
-        md = open(path, encoding="utf-8").read()
-        body = re.sub(r"^\s*#\s.*$", "", md, count=1, flags=re.M)
-        out.append((m.group(1), md_to_html(body)))
-    out.sort(key=lambda x: x[0], reverse=True)
+    for date in sorted(dates, reverse=True):
+        jp = os.path.join(REPORT_DIR, f"brief-{date}.json")
+        mp = os.path.join(REPORT_DIR, f"brief-{date}.md")
+        data = None
+        if os.path.exists(jp):
+            try:
+                data = json.load(open(jp, encoding="utf-8"))
+            except Exception:
+                data = None
+        html_ = None
+        if os.path.exists(mp):
+            md = open(mp, encoding="utf-8").read()
+            html_ = md_to_html(re.sub(r"^\s*#\s.*$", "", md, count=1, flags=re.M))
+        out.append({"date": date, "data": data, "html": html_})
     return out
 
 
-def first_summary(html_content):
-    seg = html_content
+def _h(s):
+    return html.escape(s or "")
+
+
+def _time(ts):
+    return (ts or "")[:16].replace("T", " ")
+
+
+def render_headline(it):
+    meta = []
+    if it.get("source"):
+        meta.append(f'<span class="chip">{_h(it["source"])}</span>')
+    if it.get("ts"):
+        meta.append(f'<span class="hl-time">{_h(_time(it["ts"]))}</span>')
+    meta_html = f'<div class="hl-meta">{"".join(meta)}</div>' if meta else ''
+    why = f'<p class="hl-why">💡 {_h(it.get("why"))}</p>' if it.get("why") else ''
+    url = _h(it.get("url") or "#")
+    return (f'<div class="headline">{meta_html}'
+            f'<h3 class="hl-title"><a href="{url}" target="_blank" rel="noopener">{_h(it.get("title"))}</a></h3>'
+            f'<p class="hl-summary">{_h(it.get("summary"))}</p>{why}</div>')
+
+
+def render_news(it):
+    chip = f'<span class="chip">{_h(it["source"])}</span>' if it.get("source") else ''
+    url = _h(it.get("url") or "#")
+    return ('<li class="news"><div class="news-main">'
+            f'<a class="news-title" href="{url}" target="_blank" rel="noopener">{_h(it.get("title"))}</a>'
+            f'<span class="news-sum">{_h(it.get("summary"))}</span></div>{chip}</li>')
+
+
+def render_brief(rep):
+    data = rep.get("data")
+    if not data:
+        return f'<article class="prose">{rep.get("html") or ""}</article>'
+    parts = []
+    for si, sec in enumerate(data.get("sections", [])):
+        name = sec.get("name", "")
+        top = (name == "今日头条" or si == 0)
+        parts.append(f'<h2>{EMOJI.get(name, "")} {_h(name)}</h2>')
+        items = sec.get("items", [])
+        if top:
+            for it in items:
+                parts.append(render_headline(it))
+        else:
+            parts.append('<ul class="news-list">')
+            for it in items:
+                parts.append(render_news(it))
+            parts.append('</ul>')
+    return '<article class="brief-body">' + "".join(parts) + '</article>'
+
+
+def first_summary(rep):
+    data = rep.get("data")
+    if data:
+        secs = data.get("sections", [])
+        if secs and secs[0].get("items"):
+            it = secs[0]["items"][0]
+            return (it.get("summary") or it.get("title") or "")[:180]
+    seg = rep.get("html") or ""
     for tag in ("今日头条", "模型与产品"):
         i = seg.find(tag)
         if i > -1:
             seg = seg[i:i + 500]
             break
     text = html.unescape(re.sub("<[^>]+>", " ", seg))
-    text = re.sub(r"\s+", " ", text).strip()
-    return text[:180]
+    return re.sub(r"\s+", " ", text).strip()[:180]
 
 
 def build_sources_body():
@@ -140,7 +210,6 @@ def build_sources_body():
             status = json.load(open(sp, encoding="utf-8"))
         except Exception:
             status = {}
-
     cats = {}
     for s in sources:
         cats.setdefault(s.get("category", "其他"), []).append(s)
@@ -153,24 +222,23 @@ def build_sources_body():
              '<section class="sources">']
     for c in keys:
         items = cats[c]
-        parts.append(f'<div class="source-group"><h2>{html.escape(c)}'
+        parts.append(f'<div class="source-group"><h2>{_h(c)}'
                      f'<span class="count">{len(items)}</span></h2><ul class="source-list">')
         for s in items:
             st = status.get(s["name"])
             if st:
                 dot = "ok" if st.get("ok") else "err"
                 t = (st.get("last_run") or "")[5:16].replace("T", " ")
-                st_html = f'<span class="st {dot}">● {html.escape(t)}</span>'
+                st_html = f'<span class="st {dot}">● {_h(t)}</span>'
                 tip = f'最近抓取 {st.get("fetched", 0)} 条'
             else:
                 st_html = '<span class="st na">● 尚未运行</span>'
                 tip = "尚无抓取记录"
-            note = f'<span class="note">{html.escape(s["note"])}</span>' if s.get("note") else ''
+            note = f'<span class="note">{_h(s.get("note"))}</span>' if s.get("note") else ''
             parts.append(
-                f'<li class="source-row" data-source="{html.escape(s["name"])}" '
-                f'title="{html.escape(tip)}">'
-                f'<a class="source-name" href="{html.escape(s["url"])}" target="_blank" '
-                f'rel="noopener">{html.escape(s["name"])}</a>{note}{st_html}</li>')
+                f'<li class="source-row" data-source="{_h(s["name"])}" title="{_h(tip)}">'
+                f'<a class="source-name" href="{_h(s["url"])}" target="_blank" '
+                f'rel="noopener">{_h(s["name"])}</a>{note}{st_html}</li>')
         parts.append('</ul></div>')
     parts.append('</section>')
     return "".join(parts)
@@ -186,15 +254,14 @@ def build_workflow_body():
         {"title": "清洗", "short": "去重 + 鲜度过滤",
          "detail": f"按标题去重，并只保留最近 {MAX_AGE_DAYS} 天发布的资讯。"},
         {"title": "AI 筛选与摘要", "short": MODEL_TEXT,
-         "detail": f"{MODEL_TEXT} 依据“兴趣画像”筛选、分组，写出中文摘要与“为什么重要”。"},
+         "detail": f"{MODEL_TEXT} 依据“兴趣画像”筛选、分组，输出结构化摘要与“为什么重要”。"},
         {"title": "推送", "short": "飞书推送",
          "detail": "生成飞书交互卡片，推送到你的飞书群，链接可直接点开。"},
-        {"title": "存档与建站", "short": "Markdown + 网站",
-         "detail": "把资讯保存为 Markdown 存档与结构化数据，并重新生成这个网站。"},
+        {"title": "存档与建站", "short": "结构化数据 + 网站",
+         "detail": "保存结构化数据与 Markdown 存档，并重新生成这个网站。"},
     ]
     for i, nd in enumerate(nodes, 1):
         nd["idx"] = i
-
     facts = [("运行频率", SCHEDULE_TEXT), ("信息源", f"{n} 个"),
              ("AI 模型", MODEL_TEXT), ("鲜度", f"最近 {MAX_AGE_DAYS} 天"),
              ("输出", "飞书推送 · 网站")]
@@ -203,19 +270,14 @@ def build_workflow_body():
         facts_html.append(f'<div class="fact"><span class="fact-k">{k}</span>'
                           f'<span class="fact-v">{v}</span></div>')
     facts_html.append('</div>')
-
-    return (
-        '<h1 class="page-title">工作流</h1>'
-        '<p class="page-sub">从采集到发布的完整自动化流程。可<b>拖动</b>节点重新排列，'
-        '点击<b>节点</b>查看细节。</p>'
-        '<div class="flow-wrap">'
-        '<svg class="flow-links" id="flowLinks"></svg>'
-        '<div class="flow-canvas" id="flowCanvas"></div>'
-        '</div>'
-        + "".join(facts_html) +
-        '<script>window.WORKFLOW_NODES = ' +
-        json.dumps(nodes, ensure_ascii=False) + ';</script>'
-    )
+    return ('<h1 class="page-title">工作流</h1>'
+            '<p class="page-sub">从采集到发布的完整自动化流程。可<b>拖动</b>节点重新排列，'
+            '点击<b>节点</b>查看细节。</p>'
+            '<div class="flow-wrap"><svg class="flow-links" id="flowLinks"></svg>'
+            '<div class="flow-canvas" id="flowCanvas"></div></div>'
+            + "".join(facts_html) +
+            '<script>window.WORKFLOW_NODES = ' +
+            json.dumps(nodes, ensure_ascii=False) + ';</script>')
 
 
 def build():
@@ -223,7 +285,6 @@ def build():
     tpl, css = load_templates()
     open(os.path.join(SITE_DIR, "style.css"), "w", encoding="utf-8").write(css)
 
-    # 前端脚本 + 数据（供资讯源历史弹窗使用）
     shutil.copyfile(os.path.join(TEMPLATE_DIR, "app.js"),
                     os.path.join(SITE_DIR, "app.js"))
     os.makedirs(os.path.join(SITE_DIR, "data"), exist_ok=True)
@@ -235,34 +296,31 @@ def build():
         open(items_dst, "w", encoding="utf-8").write("[]")
 
     reports = read_reports()
-    dates = [d for d, _ in reports]
+    dates = [r["date"] for r in reports]
 
     def write(name, title, sub, body, active):
-        tabs = {
-            "TAB_DAILY": "active" if active == "daily" else "",
-            "TAB_WORKFLOW": "active" if active == "workflow" else "",
-            "TAB_SOURCES": "active" if active == "sources" else "",
-        }
+        tabs = {"TAB_DAILY": "active" if active == "daily" else "",
+                "TAB_WORKFLOW": "active" if active == "workflow" else "",
+                "TAB_SOURCES": "active" if active == "sources" else ""}
         open(os.path.join(SITE_DIR, name), "w", encoding="utf-8").write(
             render(tpl, TITLE=title, CSS_URL="style.css", SITE=SITE_TITLE,
                    SUB=sub, BODY=body, **tabs))
 
-    WD = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"]
-
-    # 每天的独立页面
-    for idx, (date, content) in enumerate(reports):
+    # 每日独立页面
+    for idx, rep in enumerate(reports):
         nav = ['<a href="index.html">← 返回首页</a>']
         if idx - 1 >= 0:
             nav.append(f'<a href="{dates[idx-1]}.html">更新的一天 →</a>')
         if idx + 1 < len(dates):
             nav.append(f'<a href="{dates[idx+1]}.html">← 更早的一天</a>')
         body = (f'<div class="nav">{" ".join(nav)}</div>'
-                f'<div class="card brief"><article>{content}</article></div>')
-        write(f"{date}.html", f"{date} · {SITE_TITLE}", date, body, "daily")
+                f'<div class="card brief">{render_brief(rep)}</div>')
+        write(f"{rep['date']}.html", f"{rep['date']} · {SITE_TITLE}", rep["date"], body, "daily")
 
-    # 首页：Hero + 今日晨报全文 + 往期列表
+    # 首页
     if reports:
-        cur_date, cur_html = reports[0]
+        rep0 = reports[0]
+        cur_date = rep0["date"]
         n = len(load_sources())
         wd = WD[datetime.date.fromisoformat(cur_date).weekday()]
         hero = ('<header class="hero">'
@@ -273,13 +331,14 @@ def build():
         current = ('<section>'
                    '<div class="section-head"><h2>今日晨报</h2>'
                    f'<span class="date">{cur_date}</span></div>'
-                   f'<div class="card brief">{cur_html}</div></section>')
+                   f'<div class="card brief">{render_brief(rep0)}</div></section>')
         rows = []
-        for d, c in reports[1:]:
-            wd2 = WD[datetime.date.fromisoformat(d).weekday()]
-            rows.append(f'<li><a href="{d}.html"><span class="d">{d}</span>'
+        for rep in reports[1:]:
+            wd2 = WD[datetime.date.fromisoformat(rep["date"]).weekday()]
+            rows.append(f'<li><a href="{rep["date"]}.html">'
+                        f'<span class="d">{rep["date"]}</span>'
                         f'<span class="wd">{wd2}</span>'
-                        f'<span class="x">{html.escape(first_summary(c))}</span>'
+                        f'<span class="x">{html.escape(first_summary(rep))}</span>'
                         f'<span class="chev">→</span></a></li>')
         if rows:
             past = ('<section>'
@@ -295,7 +354,6 @@ def build():
                       '<p class="lead">还没有晨报，等第一次运行后就会出现。</p></header>')
     write("index.html", SITE_TITLE, "每日 AI 前沿资讯", index_body, "daily")
 
-    # 工作流页 / 资讯源页
     write("workflow.html", f"工作流 · {SITE_TITLE}", "工作流", build_workflow_body(), "workflow")
     write("sources.html", f"资讯源 · {SITE_TITLE}", "资讯源", build_sources_body(), "sources")
 
