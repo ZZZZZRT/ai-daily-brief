@@ -31,8 +31,11 @@ python3 build_site.py   # 生成到 docs/ ，打开 docs/index.html 预览
 - 每日页：完整晨报，所有条目带原文链接，含上/下一天导航
 - 每日任务会自动重新生成并提交到 `docs/`
 
-**线上地址**：https://zzzzzrt.github.io/ai-daily-brief/
-（由 GitHub Pages 从 `main` 分支的 `/docs` 目录发布）
+**线上地址**：https://ai-daily-brief.pages.dev/ （**需要密码**）
+
+- 托管：Cloudflare Pages（连接本仓库，输出目录 `docs`）
+- 鉴权：`functions/_middleware.js` 提供 HTTP Basic Auth；账号密码在 Cloudflare 项目环境变量 `BASIC_USER` / `BASIC_PASS`
+- 每日 Actions 提交 `docs/` 后，Cloudflare 自动重新部署
 
 ## 信息源
 

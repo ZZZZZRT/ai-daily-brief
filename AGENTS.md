@@ -17,8 +17,18 @@
 | `.github/workflows/daily.yml` | 定时任务说明书（cron、环境变量、存档提交） |
 | `reports/brief-日期.md` | 每日晨报存档（Actions 每天自动提交回仓库） |
 | `build_site.py` | 网站生成器（零依赖）：把 `reports/` 渲染成 `docs/` 静态网站 |
-| `docs/` | 生成的网站（首页 + 每日页面 + style.css，Actions 自动更新）。GitHub Pages 从 `main` 分支 `/docs` 发布 |
+| `docs/` | 生成的网站（首页 + 每日页面 + style.css，Actions 自动更新） |
+| `functions/_middleware.js` | Cloudflare Pages 鉴权中间件（HTTP Basic Auth），给网站加密码 |
 | `CHANGELOG.md` | 变更记录 |
+
+## 网站托管与鉴权
+
+- 托管：**Cloudflare Pages**（连接本仓库，构建输出目录 `docs`，无构建命令）。
+- 鉴权：`functions/_middleware.js` 提供 HTTP Basic Auth；用户名/密码存在
+  Cloudflare Pages 项目的**环境变量** `BASIC_USER` / `BASIC_PASS`（ASCII 字符）。
+- 网址：https://ai-daily-brief.pages.dev/ （受密码保护）。
+- 每日 Actions 提交 `docs/` 后，Cloudflare 会自动重新部署。
+- GitHub Pages 已停用（仓库转为私有后免费版不再可用）。
 
 ## 本地 / 线上边界（重要，别搞错）
 
@@ -49,7 +59,8 @@
 ## 当前进展
 
 - [x] 第 1 期：抓取 + DeepSeek 筛选 + 飞书推送 + 存档（已上线，每天 8:00）
-- [x] 第 3 期：网站生成器 `build_site.py` → `docs/`（每日自动更新）；GitHub Pages 发布，网址 https://zzzzzrt.github.io/ai-daily-brief/
+- [x] 第 3 期：网站生成器 `build_site.py` → `docs/`（每日自动更新）
+- [x] 网站托管改用 Cloudflare Pages + 密码鉴权（`functions/_middleware.js`），https://ai-daily-brief.pages.dev/
 - [ ] 第 2 期：接入 X / Reddit / 小红书 / B站 等社交源
 - [ ] 第 4 期：知识库 + AI 问答
 

@@ -38,7 +38,7 @@ INTERESTS = """我是 AI 从业者。我关心，按优先级：
 UA = {"User-Agent": "Mozilla/5.0 (compatible; ai-brief/0.1)"}
 MAX_AGE_DAYS = 3
 REPORT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "reports")
-SITE_URL = "https://zzzzzrt.github.io/ai-daily-brief/"
+SITE_URL = "https://ai-daily-brief.pages.dev/"
 
 
 def fetch(name, url):

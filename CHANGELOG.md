@@ -1,5 +1,12 @@
 # 变更记录
 
+## 2026-10-16 · 网站加密码 + 换托管
+- 新增 `functions/_middleware.js`：Cloudflare Pages 鉴权中间件（HTTP Basic Auth），未登录返回 401。
+- 托管从 GitHub Pages 迁移到 **Cloudflare Pages**（连接本仓库，输出目录 `docs`），账号密码存环境变量 `BASIC_USER` / `BASIC_PASS`。
+- 仓库转为私有。飞书推送的网站链接更新为 https://ai-daily-brief.pages.dev/。
+- 更新 `brief.py`、`AGENTS.md`、`README.md`。
+
+
 ## 2026-10-16 · 第 3 期（网站）
 - 新增 `build_site.py`：零依赖，把 `reports/` 渲染成静态网站（首页 + 每日页面 + style.css），带原文链接、上/下一天导航。
 - 网站输出目录定为 `docs/`（GitHub Pages "从分支发布"支持 `/docs`）。
