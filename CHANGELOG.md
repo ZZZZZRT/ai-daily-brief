@@ -1,5 +1,11 @@
 # 变更记录
 
+## 2026-10-16 · 前端模板化 + 托管暂缓
+- 把前端从 Python 中抽离：新增 `templates/style.css`（样式）与 `templates/page.html`（页面骨架，占位符）。
+- `build_site.py` 改为读取 `templates/` 渲染，行为不变。
+- 托管决定暂缓：`workers.dev` 在国内被 DNS 污染/封锁无法直连；`worker.js` / `wrangler.jsonc` 保留备用。
+
+
 ## 2026-10-16 · 改用 Cloudflare Workers 托管
 - Cloudflare 新版把 Pages 并入 Workers，新项目即 Worker。据此调整：
 - 新增 `wrangler.jsonc`（入口 `worker.js`，静态资源目录 `./docs`）与 `worker.js`（HTTP Basic Auth + 静态托管）。

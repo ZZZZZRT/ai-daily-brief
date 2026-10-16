@@ -31,11 +31,16 @@ python3 build_site.py   # 生成到 docs/ ，打开 docs/index.html 预览
 - 每日页：完整晨报，所有条目带原文链接，含上/下一天导航
 - 每日任务会自动重新生成并提交到 `docs/`
 
-**线上地址**：部署完成后填入 Worker 的 URL（**需要密码**）
+### 改前端（样式 / 结构）
 
-- 托管：Cloudflare Workers（Git 集成，`wrangler.jsonc` + `worker.js`，静态资源目录 `./docs`）
-- 鉴权：`worker.js` 提供 HTTP Basic Auth；账号密码在 Worker 的环境变量/密钥 `BASIC_USER` / `BASIC_PASS`
-- 每日 Actions 提交 `docs/` 后，Cloudflare 自动重新构建部署
+前端内容由 `templates/` 决定，改这两个文件即可（不用碰 Python）：
+
+- `templates/style.css` —— 全部样式（配色、字号、卡片、间距、深浅色）
+- `templates/page.html` —— 页面骨架（页头标题、页脚、占位符）
+
+改完运行 `python3 build_site.py` 重新生成，再打开 `docs/index.html` 预览。
+
+**线上地址**：托管方案待定（Cloudflare Workers 因 `workers.dev` 在国内被墙暂缓；`worker.js` / `wrangler.jsonc` 保留备用）。
 
 ## 信息源
 

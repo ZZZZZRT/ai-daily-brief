@@ -17,6 +17,8 @@
 | `.github/workflows/daily.yml` | 定时任务说明书（cron、环境变量、存档提交） |
 | `reports/brief-日期.md` | 每日晨报存档（Actions 每天自动提交回仓库） |
 | `build_site.py` | 网站生成器（零依赖）：把 `reports/` 渲染成 `docs/` 静态网站 |
+| `templates/style.css` | **网站样式**（前端改动入口） |
+| `templates/page.html` | **页面骨架**（前端改动入口），占位符 `{{TITLE}} {{CSS_URL}} {{SITE}} {{SUB}} {{BODY}}` |
 | `docs/` | 生成的网站（首页 + 每日页面 + style.css，Actions 自动更新） |
 | `wrangler.jsonc` | Cloudflare Worker 配置：入口 `worker.js`、静态资源目录 `./docs` |
 | `worker.js` | Cloudflare Worker：HTTP Basic Auth + 提供静态网站 |
@@ -46,6 +48,8 @@
 | 加/删信息源 | `brief.py` 的 `SOURCES`（每行 `("名称", "RSS地址")`） |
 | 调兴趣 / 筛选偏好 | `brief.py` 的 `INTERESTS` |
 | 改输出模板（分组、字数、结构） | `brief.py` 里 `call_deepseek` 的 `prompt` 中"要求"部分 |
+| **改网站样式** | `templates/style.css` |
+| **改网站结构/页头页脚** | `templates/page.html`，再 `python3 build_site.py` 重新生成 |
 | 改推送时间 | `.github/workflows/daily.yml` 的 `cron`（UTC；北京 8:00 = `0 0 * * *`） |
 | 换推送渠道 | `brief.py` 的 `push_feishu` + 新增 Secrets |
 
