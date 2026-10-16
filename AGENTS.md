@@ -18,17 +18,19 @@
 | `reports/brief-日期.md` | 每日晨报存档（Actions 每天自动提交回仓库） |
 | `build_site.py` | 网站生成器（零依赖）：把 `reports/` 渲染成 `docs/` 静态网站 |
 | `docs/` | 生成的网站（首页 + 每日页面 + style.css，Actions 自动更新） |
-| `functions/_middleware.js` | Cloudflare Pages 鉴权中间件（HTTP Basic Auth），给网站加密码 |
+| `wrangler.jsonc` | Cloudflare Worker 配置：入口 `worker.js`、静态资源目录 `./docs` |
+| `worker.js` | Cloudflare Worker：HTTP Basic Auth + 提供静态网站 |
 | `CHANGELOG.md` | 变更记录 |
 
 ## 网站托管与鉴权
 
-- 托管：**Cloudflare Pages**（连接本仓库，构建输出目录 `docs`，无构建命令）。
-- 鉴权：`functions/_middleware.js` 提供 HTTP Basic Auth；用户名/密码存在
-  Cloudflare Pages 项目的**环境变量** `BASIC_USER` / `BASIC_PASS`（ASCII 字符）。
-- 网址：https://ai-daily-brief.pages.dev/ （受密码保护）。
-- 每日 Actions 提交 `docs/` 后，Cloudflare 会自动重新部署。
-- GitHub Pages 已停用（仓库转为私有后免费版不再可用）。
+- 托管：**Cloudflare Workers（Git 集成）**。Cloudflare 新版已把 Pages 并入 Workers，
+  新项目是 Worker。构建命令 `npx wrangler deploy`，通过 `wrangler.jsonc`
+  部署 `worker.js` + 静态资源 `./docs`。
+- 鉴权：`worker.js` 提供 HTTP Basic Auth；用户名/密码存在 Worker 的
+  **环境变量/密钥** `BASIC_USER` / `BASIC_PASS`（ASCII 字符）。
+- 网址：部署成功后，将 Worker 的 URL 填入 `brief.py` 的 `SITE_URL`。
+- 每日 Actions 提交 `docs/` 后，Cloudflare 自动重新构建部署。
 
 ## 本地 / 线上边界（重要，别搞错）
 
@@ -60,7 +62,7 @@
 
 - [x] 第 1 期：抓取 + DeepSeek 筛选 + 飞书推送 + 存档（已上线，每天 8:00）
 - [x] 第 3 期：网站生成器 `build_site.py` → `docs/`（每日自动更新）
-- [x] 网站托管改用 Cloudflare Pages + 密码鉴权（`functions/_middleware.js`），https://ai-daily-brief.pages.dev/
+- [x] 网站托管改用 Cloudflare Workers + 密码鉴权（`worker.js` + `wrangler.jsonc`），URL 待填
 - [ ] 第 2 期：接入 X / Reddit / 小红书 / B站 等社交源
 - [ ] 第 4 期：知识库 + AI 问答
 

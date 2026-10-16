@@ -1,5 +1,13 @@
 # 变更记录
 
+## 2026-10-16 · 改用 Cloudflare Workers 托管
+- Cloudflare 新版把 Pages 并入 Workers，新项目即 Worker。据此调整：
+- 新增 `wrangler.jsonc`（入口 `worker.js`，静态资源目录 `./docs`）与 `worker.js`（HTTP Basic Auth + 静态托管）。
+- 移除 `functions/_middleware.js`（Pages 专用）。
+- 账号密码存 Worker 环境变量/密钥 `BASIC_USER` / `BASIC_PASS`。
+- `brief.py` 的 `SITE_URL` 暂置空，待部署成功后填入 Worker 的 URL。
+
+
 ## 2026-10-16 · 网站加密码 + 换托管
 - 新增 `functions/_middleware.js`：Cloudflare Pages 鉴权中间件（HTTP Basic Auth），未登录返回 401。
 - 托管从 GitHub Pages 迁移到 **Cloudflare Pages**（连接本仓库，输出目录 `docs`），账号密码存环境变量 `BASIC_USER` / `BASIC_PASS`。
