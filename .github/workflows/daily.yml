@@ -2,10 +2,15 @@ name: Daily AI Brief
 
 on:
   schedule:
-    # UTC 00:00 = 北京时间 08:00；00:30 为备份（若 00:00 未触发或失败）
+    # UTC 00:00 = 北京时间 08:00；00:30 为备份（外部定时也可触发 workflow_dispatch）
     - cron: "0 0 * * *"
     - cron: "30 0 * * *"
   workflow_dispatch:
+
+# 同一天的任务串行执行，避免并发导致重复推送
+concurrency:
+  group: daily-brief
+  cancel-in-progress: false
 
 permissions:
   contents: write
@@ -13,7 +18,7 @@ permissions:
 jobs:
   brief:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
@@ -24,38 +29,60 @@ jobs:
       - name: Install deps
         run: pip install -r requirements.txt
 
-      - name: Check today's brief
-        id: check
+      - name: Check state
+        id: st
         run: |
-          TODAY=$(TZ=Asia/Shanghai date +%F)
+          TODAY=$(python3 check.py date)
           echo "today=$TODAY" >> "$GITHUB_OUTPUT"
-          if [ -f "reports/brief-$TODAY.json" ] && [ "${{ github.event_name }}" = "schedule" ]; then
-            echo "skip=true" >> "$GITHUB_OUTPUT"
-            echo "今天的晨报已存在，跳过（备份触发）"
+          if python3 check.py generated; then
+            echo "generated=true" >> "$GITHUB_OUTPUT"
           else
-            echo "skip=false" >> "$GITHUB_OUTPUT"
+            echo "generated=false" >> "$GITHUB_OUTPUT"
           fi
+          if python3 check.py pushed; then
+            echo "pushed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "pushed=false" >> "$GITHUB_OUTPUT"
+          fi
+          echo "日期=$TODAY 已生成=$([ -f reports/brief-$TODAY.json ] && echo yes || echo no) 已推送=$(python3 check.py pushed && echo yes || echo no)"
 
-      - name: Generate & push brief
-        if: steps.check.outputs.skip != 'true'
+      - name: Generate brief
+        if: steps.st.outputs.generated != 'true'
         env:
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
-          FEISHU_WEBHOOK_URL: ${{ secrets.FEISHU_WEBHOOK_URL }}
-        run: python brief.py
+        run: python brief.py generate
 
       - name: Build website
-        if: steps.check.outputs.skip != 'true'
         run: python3 build_site.py
 
-      - name: Commit reports & site
-        if: steps.check.outputs.skip != 'true'
+      - name: Push to Feishu (idempotent)
+        if: steps.st.outputs.pushed != 'true'
+        env:
+          FEISHU_WEBHOOK_URL: ${{ secrets.FEISHU_WEBHOOK_URL }}
+        run: python brief.py push
+
+      - name: Verify
+        run: python3 check.py all
+
+      - name: Commit reports & site & state
+        if: always()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add reports/ docs/ data/
+          git add reports/ docs/ data/ state/
           if ! git diff --cached --quiet; then
-            git commit -m "brief: $(date -u +%F)"
+            git commit -m "brief: $(TZ=Asia/Shanghai date +%F)"
             git push
           else
             echo "no changes"
           fi
+
+      - name: Alert on failure
+        if: failure()
+        env:
+          FEISHU_WEBHOOK_URL: ${{ secrets.FEISHU_WEBHOOK_URL }}
+        run: |
+          curl -s -X POST "$FEISHU_WEBHOOK_URL" \
+            -H 'Content-Type: application/json' \
+            -d '{"msg_type":"text","content":{"text":"⚠️ AI 晨报今日任务失败，请到 GitHub Actions 查看日志。若已连续失败，请手动 Run workflow。"}}' \
+            > /dev/null

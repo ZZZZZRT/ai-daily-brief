@@ -36,7 +36,37 @@ UA = {"User-Agent": "Mozilla/5.0 (compatible; ai-brief/0.1)"}
 MAX_AGE_DAYS = 3
 REPORT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "reports")
 DATA_DIR = os.path.join(BASE, "data")
+STATE_DIR = os.path.join(BASE, "state")
 SITE_URL = ""  # 网站最终网址（部署成功后填入，如 https://ai-daily-brief.<你的子域>.workers.dev/）
+
+
+def bj_today():
+    """北京时间的今天（服务器是 UTC）。"""
+    return (datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=8)).date().isoformat()
+
+
+def now_iso():
+    return datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds")
+
+
+def load_state(date):
+    p = os.path.join(STATE_DIR, f"{date}.json")
+    try:
+        with open(p, encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {"date": date}
+
+
+def save_state(date, **kw):
+    os.makedirs(STATE_DIR, exist_ok=True)
+    st = load_state(date)
+    st.update(kw)
+    st["date"] = date
+    st["updated_at"] = now_iso()
+    with open(os.path.join(STATE_DIR, f"{date}.json"), "w", encoding="utf-8") as f:
+        json.dump(st, f, ensure_ascii=False, indent=2)
+    return st
 
 
 def fetch(name, url):
@@ -69,7 +99,7 @@ def fetch(name, url):
 def collect():
     """返回 (fresh_items, all_items, status)。"""
     items, status = [], {}
-    now = datetime.datetime.now(datetime.UTC).replace(tzinfo=None)
+    now = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
     with concurrent.futures.ThreadPoolExecutor(max_workers=8) as ex:
         results = list(ex.map(lambda s: (s[0], fetch(*s)), SOURCES))
     for name, (res, ok) in results:
@@ -232,8 +262,8 @@ def push_feishu(md, title):
     return resp
 
 
-def main():
-    today = datetime.date.today().isoformat()
+def generate():
+    date = bj_today()
     print("① 抓取信息源 ...", file=sys.stderr)
     fresh, all_items, status = collect()
     print(f"   去重后 {len(fresh)} 条（累积候选 {len(all_items)} 条）", file=sys.stderr)
@@ -243,22 +273,51 @@ def main():
     data = enrich(call_deepseek(fresh), all_items)
 
     os.makedirs(REPORT_DIR, exist_ok=True)
-    json_path = os.path.join(REPORT_DIR, f"brief-{today}.json")
+    json_path = os.path.join(REPORT_DIR, f"brief-{date}.json")
     with open(json_path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False)
     print(f"[已存档] {json_path}", file=sys.stderr)
 
-    md = to_markdown(data, today)
-    md = re.sub(r"^\s*#\s.*$", f"# ☀️ AI 晨报 · {today}", md, count=1, flags=re.M)
-    md_path = os.path.join(REPORT_DIR, f"brief-{today}.md")
+    md = to_markdown(data, date)
+    md = re.sub(r"^\s*#\s.*$", f"# ☀️ AI 晨报 · {date}", md, count=1, flags=re.M)
+    md_path = os.path.join(REPORT_DIR, f"brief-{date}.md")
     open(md_path, "w", encoding="utf-8").write(md)
     print(f"[已存档] {md_path}", file=sys.stderr)
 
+    st = load_state(date)
+    save_state(date, generated_at=now_iso(),
+               attempts=int(st.get("attempts", 0)) + 1, last_error=None)
+    print(f"[状态] {date} 生成完成", file=sys.stderr)
+    return date
+
+
+def push_only():
+    date = bj_today()
+    st = load_state(date)
+    if st.get("pushed_at"):
+        print(f"[跳过] {date} 已推送过（{st['pushed_at']}）", file=sys.stderr)
+        return False
+    md_path = os.path.join(REPORT_DIR, f"brief-{date}.md")
+    if not os.path.exists(md_path):
+        raise SystemExit(f"缺少 {md_path}，请先运行 generate")
+    md = open(md_path, encoding="utf-8").read()
     print("③ 推送飞书 ...", file=sys.stderr)
-    push_feishu(md, f"☀️ AI 晨报 · {today}")
-    print("[已推送飞书]", file=sys.stderr)
-    print(md)
+    push_feishu(md, f"☀️ AI 晨报 · {date}")
+    save_state(date, pushed_at=now_iso())
+    print(f"[已推送] {date}", file=sys.stderr)
+    return True
+
+
+def run_all():
+    generate()
+    push_only()
 
 
 if __name__ == "__main__":
-    main()
+    cmd = sys.argv[1] if len(sys.argv) > 1 else "all"
+    if cmd == "generate":
+        generate()
+    elif cmd == "push":
+        push_only()
+    else:
+        run_all()

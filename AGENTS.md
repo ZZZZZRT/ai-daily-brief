@@ -12,7 +12,8 @@
 
 | 文件 | 作用 |
 |---|---|
-| `brief.py` | 引擎。含三处常改点：`SOURCES`(信息源)、`INTERESTS`(兴趣画像)、`call_deepseek` 里的 `prompt`(输出模板)；以及 `push_feishu`(飞书推送) |
+| `brief.py` | 引擎（子命令：`generate` 生成 / `push` 推送 / `all` 两者）。常改点：`INTERESTS`(兴趣画像)、`call_deepseek` 里的 `prompt`(输出模板)、`push_feishu`(飞书推送) |
+| `check.py` | 健康检查：判断今天「生成 / 推送 / 网站」是否完成（`python3 check.py all`） |
 | `requirements.txt` | 依赖（feedparser） |
 | `.github/workflows/daily.yml` | 定时任务说明书（cron、环境变量、存档提交） |
 | `reports/brief-日期.md` | 每日晨报存档（Markdown，供飞书与兼容渲染） |
@@ -24,10 +25,20 @@
 | `templates/app.js` | **前端交互脚本**（工作流拖动/连线/弹窗、资讯源历史弹窗） |
 | `data/items.json` | 资讯累积数据（每条含来源/标题/链接/时间），供资讯源历史弹窗使用 |
 | `data/sources_status.json` | 各源最近抓取状态（成功/失败、条数、时间） |
+| `state/日期.json` | **幂等账本**：记录 `generated_at` / `pushed_at` / `attempts`，用于避免重复推送 |
 | `docs/` | 生成的网站（首页 + 每日页面 + style.css，Actions 自动更新） |
 | `wrangler.jsonc` | Cloudflare Worker 配置：入口 `worker.js`、静态资源目录 `./docs` |
 | `worker.js` | Cloudflare Worker：HTTP Basic Auth + 提供静态网站 |
 | `CHANGELOG.md` | 变更记录 |
+
+## 可靠性与幂等（不漏推、不重复推）
+
+- 触发：GitHub schedule（00:00 / 00:30 UTC）+ 外部定时（cron-job.org）调用 `workflow_dispatch`，可重复触发。
+- 幂等：`state/<日期>.json` 记录 `generated_at` / `pushed_at`；`python brief.py push` 若已有 `pushed_at` 则跳过。
+- 校验：`python3 check.py all` 检查「生成 / 推送 / 网站」三项，任一缺失即任务失败。
+- 告警：任务失败时通过飞书发送告警。
+- 并发：`concurrency: daily-brief`，同一天串行执行，避免并发重复推送。
+- 重跑：Actions → Daily AI Brief → Run workflow（重跑会先检查状态，不会重复推送）。
 
 ## 网站托管与鉴权
 
