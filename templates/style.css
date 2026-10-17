@@ -260,3 +260,19 @@ footer{color:var(--muted-2);font-size:12px;text-align:center;margin-top:64px;let
 .modal-body::-webkit-scrollbar{width:10px}
 .modal-body::-webkit-scrollbar-thumb{background:rgba(15,23,42,.14);border-radius:8px;border:3px solid #fff}
 .modal-body::-webkit-scrollbar-thumb:hover{background:rgba(15,23,42,.24)}
+
+/* ============================================================
+   提示词页
+   ============================================================ */
+.prompt-sec{margin-top:26px}
+.prompt-sec h2{display:flex;align-items:baseline;gap:10px;font-size:16px;font-weight:650;
+  margin:0 0 10px;letter-spacing:-.01em}
+.prompt-sec .src{color:var(--muted-2);font-size:12px;font-weight:500}
+.code{background:#0f172a;color:#e2e8f0;border-radius:12px;padding:18px 20px;overflow:auto;
+  font:13px/1.75 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;white-space:pre-wrap;
+  word-break:break-word;border:1px solid rgba(15,23,42,.2);box-shadow:var(--shadow-1);margin:0}
+.prompt-note{margin:10px 0 0;color:var(--muted);font-size:12.5px;line-height:1.9}
+.prompt-note code{background:var(--bg-soft);border:1px solid var(--line);border-radius:6px;
+  padding:1px 6px;font-size:12px}
+.rules{margin:0;padding-left:1.2em;color:var(--fg-soft);font-size:14px;line-height:1.9}
+.rules li{margin:.2em 0}

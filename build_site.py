@@ -20,13 +20,28 @@ SITE_DIR = os.path.join(BASE, "docs")
 TEMPLATE_DIR = os.path.join(BASE, "templates")
 CONFIG_DIR = os.path.join(BASE, "config")
 DATA_DIR = os.path.join(BASE, "data")
+PROMPT_DIR = os.path.join(BASE, "prompts")
 SITE_TITLE = "☀️ AI 晨报"
 
+
+def load_config():
+    with open(os.path.join(PROMPT_DIR, "config.json"), encoding="utf-8") as f:
+        return json.load(f)
+
+
+def load_prompts():
+    with open(os.path.join(PROMPT_DIR, "interests.md"), encoding="utf-8") as f:
+        interests = f.read().strip()
+    with open(os.path.join(PROMPT_DIR, "brief.md"), encoding="utf-8") as f:
+        template = f.read()
+    return interests, template
+
+
+CFG = load_config()
+EMOJI = CFG.get("section_emoji", {})
+MODEL_TEXT = CFG.get("model", "deepseek-chat")
+MAX_AGE_DAYS = int(CFG.get("max_age_days", 3))
 SCHEDULE_TEXT = "每天 08:00（北京时间）"
-MODEL_TEXT = "DeepSeek（deepseek-chat）"
-MAX_AGE_DAYS = 3
-EMOJI = {"今日头条": "☀️", "模型与产品": "🚀", "工具与Skills": "🛠️",
-         "研究与论文": "📄", "行业动态": "💰"}
 WD = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"]
 
 
@@ -41,11 +56,18 @@ def load_templates():
     return tpl, css
 
 
+KNOWN_TOKENS = ("TITLE", "CSS_URL", "SITE", "SUB", "BODY",
+                "TAB_DAILY", "TAB_WORKFLOW", "TAB_SOURCES", "TAB_PROMPTS")
+
+
 def render(tpl, **kw):
     out = tpl
     for k, v in kw.items():
         out = out.replace("{{" + k.upper() + "}}", str(v))
-    return re.sub(r"\{\{[A-Z_]+\}\}", "", out)
+    # 只清理系统占位符，保留提示词模板里的 {{INTERESTS}} 等
+    for k in KNOWN_TOKENS:
+        out = out.replace("{{" + k + "}}", "")
+    return out
 
 
 # ── 旧版 Markdown → HTML（兼容历史存档）───────────────────────
@@ -317,6 +339,48 @@ def build_workflow_body():
             json.dumps(nodes, ensure_ascii=False) + ';</script>')
 
 
+def build_prompts_body():
+    interests, template = load_prompts()
+    facts = [
+        ("模型", CFG.get("model", "-")),
+        ("温度", str(CFG.get("temperature", "-"))),
+        ("鲜度", f"最近 {CFG.get('max_age_days', '-')} 天"),
+        ("头条数", f"{CFG.get('headline_min', '-')}-{CFG.get('headline_max', '-')} 条"),
+        ("每节条数", f"{CFG.get('section_min', '-')}-{CFG.get('section_max', '-')} 条"),
+        ("摘要长度", f"{CFG.get('excerpt_chars', '-')} 字"),
+    ]
+    facts_html = ['<div class="facts">']
+    for k, v in facts:
+        facts_html.append(f'<div class="fact"><span class="fact-k">{_h(k)}</span>'
+                          f'<span class="fact-v">{_h(v)}</span></div>')
+    facts_html.append('</div>')
+
+    rules = []
+    for name in CFG.get("sections", []):
+        rules.append(f'<li>{EMOJI.get(name, "")} {_h(name)}：每节 '
+                     f'{CFG.get("section_min", "-")}-{CFG.get("section_max", "-")} 条</li>')
+    rules_html = ('<ul class="rules"><li>☀️ 今日头条：'
+                  f'{CFG.get("headline_min", "-")}-{CFG.get("headline_max", "-")} 条，'
+                  '每条含摘要 + “为什么重要”</li>' + "".join(rules) + '</ul>')
+
+    return ('<h1 class="page-title">提示词与规则</h1>'
+            '<p class="page-sub">这里是当前生效的 AI 配置。<b>修改位于仓库的 <code>prompts/</code> 目录</b>'
+            '（<code>interests.md</code> / <code>brief.md</code> / <code>config.json</code>），'
+            '保存后下次运行自动生效。</p>'
+            + "".join(facts_html) +
+            '<section class="prompt-sec"><h2>兴趣画像 <span class="src">prompts/interests.md</span></h2>'
+            f'<pre class="code">{_h(interests)}</pre></section>'
+            '<section class="prompt-sec"><h2>提示词模板 <span class="src">prompts/brief.md</span></h2>'
+            f'<pre class="code">{_h(template)}</pre>'
+            '<p class="prompt-note">运行时自动替换的占位符：'
+            '<code>{{INTERESTS}}</code> <code>{{MAX_AGE_DAYS}}</code> <code>{{COUNT}}</code> '
+            '<code>{{HEADLINE_MIN}}</code> <code>{{HEADLINE_MAX}}</code> '
+            '<code>{{SECTION_MIN}}</code> <code>{{SECTION_MAX}}</code> '
+            '<code>{{SECTIONS}}</code> <code>{{LISTING}}</code></p></section>'
+            '<section class="prompt-sec"><h2>板块规则 <span class="src">prompts/config.json</span></h2>'
+            + rules_html + '</section>')
+
+
 def build():
     os.makedirs(SITE_DIR, exist_ok=True)
     tpl, css = load_templates()
@@ -338,7 +402,8 @@ def build():
     def write(name, title, sub, body, active):
         tabs = {"TAB_DAILY": "active" if active == "daily" else "",
                 "TAB_WORKFLOW": "active" if active == "workflow" else "",
-                "TAB_SOURCES": "active" if active == "sources" else ""}
+                "TAB_SOURCES": "active" if active == "sources" else "",
+                "TAB_PROMPTS": "active" if active == "prompts" else ""}
         open(os.path.join(SITE_DIR, name), "w", encoding="utf-8").write(
             render(tpl, TITLE=title, CSS_URL="style.css", SITE=SITE_TITLE,
                    SUB=sub, BODY=body, **tabs))
@@ -396,6 +461,7 @@ def build():
 
     write("workflow.html", f"工作流 · {SITE_TITLE}", "工作流", build_workflow_body(), "workflow")
     write("sources.html", f"资讯源 · {SITE_TITLE}", "资讯源", build_sources_body(), "sources")
+    write("prompts.html", f"提示词 · {SITE_TITLE}", "提示词", build_prompts_body(), "prompts")
 
     print(f"[site] 生成 {len(reports)} 期 + 工作流 + 资讯源 → {SITE_DIR}")
     print(f"        首页: {os.path.join(SITE_DIR, 'index.html')}")

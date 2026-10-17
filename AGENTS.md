@@ -20,6 +20,9 @@
 | `reports/brief-日期.json` | 每日晨报**结构化数据**（板块/条目/来源/时间），网站卡片渲染来源 |
 | `build_site.py` | 网站生成器（零依赖）：把 `reports/` 渲染成 `docs/` 静态网站 |
 | `config/sources.json` | **信息源清单**（`brief.py` 采集与网站"资讯源"页共用） |
+| `prompts/interests.md` | **兴趣画像**（决定什么算重要） |
+| `prompts/brief.md` | **提示词模板**（占位符由 `brief.py` 运行时替换） |
+| `prompts/config.json` | **AI 配置**：模型、温度、鲜度、各板块条数、摘要长度、emoji |
 | `templates/style.css` | **网站样式**（前端改动入口） |
 | `templates/page.html` | **页面骨架**（前端改动入口），占位符 `{{TITLE}} {{CSS_URL}} {{SITE}} {{SUB}} {{BODY}}` |
 | `templates/app.js` | **前端交互脚本**（工作流拖动/连线/弹窗、资讯源历史弹窗） |
@@ -52,8 +55,8 @@
 
 ## 网站结构
 
-- 顶部标签栏（`templates/page.html` 的 `.tabs`）：`AI日报`（index.html）、`工作流`（workflow.html）、`资讯源`（sources.html）。
-- `build_site.py` 生成：`index.html`（当前晨报 + 往期列表）、每日页 `<日期>.html`、`workflow.html`（可拖动节点+弹窗）、`sources.html`（状态+历史弹窗）。
+- 顶部标签栏（`templates/page.html` 的 `.tabs`）：`AI日报`（index.html）、`工作流`（workflow.html）、`资讯源`（sources.html）、`提示词`（prompts.html）。
+- `build_site.py` 生成：`index.html`（当前晨报 + 往期列表）、每日页 `<日期>.html`、`workflow.html`（可拖动节点+弹窗）、`sources.html`（状态+历史弹窗）、`prompts.html`（当前提示词与规则）。
 - 交互脚本 `templates/app.js` 会被拷到 `docs/app.js`；资讯数据从 `docs/data/items.json` 读取（因此本地预览要用 HTTP 服务，不能用 file://）。
 - 本地预览：`cd docs && python3 -m http.server 8123`，然后打开 http://localhost:8123/ 。
 
@@ -69,8 +72,9 @@
 | 想改什么 | 改哪里 |
 |---|---|
 | 加/删信息源 | `config/sources.json`（每项 `name` / `url` / `category` / `note`）；采集与"资讯源"页都会同步 |
-| 调兴趣 / 筛选偏好 | `brief.py` 的 `INTERESTS` |
-| 改输出模板（分组、字数、结构） | `brief.py` 里 `call_deepseek` 的 `prompt` 中"要求"部分 |
+| 调兴趣 / 筛选偏好 | `prompts/interests.md` |
+| 改输出模板 / 板块规则 | `prompts/brief.md`（模板）+ `prompts/config.json`（条数/板块/emoji） |
+| 换模型 / 温度 / 摘要长度 | `prompts/config.json` |
 | **改网站样式** | `templates/style.css` |
 | **改网站结构/页头页脚** | `templates/page.html`，再 `python3 build_site.py` 重新生成 |
 | **改前端交互**（拖动/弹窗等） | `templates/app.js` |

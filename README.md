@@ -42,6 +42,24 @@ python3 build_site.py   # 生成到 docs/ ，打开 docs/index.html 预览
 
 **线上地址**：托管方案待定（Cloudflare Workers 因 `workers.dev` 在国内被墙暂缓；`worker.js` / `wrangler.jsonc` 保留备用）。
 
+## 提示词与配置
+
+AI 的规则都在 `prompts/` 目录，改文本即可，不用碰代码：
+
+| 文件 | 作用 |
+|---|---|
+| `prompts/interests.md` | 兴趣画像（决定什么算重要） |
+| `prompts/brief.md` | 提示词模板（占位符运行时替换） |
+| `prompts/config.json` | 模型、温度、鲜度天数、板块条数、摘要长度、emoji |
+
+预览最终提示词（不发请求）：
+
+```bash
+python brief.py prompt
+```
+
+网站上的「提示词」tab 会展示当前生效的版本。
+
 ## 信息源
 
 见 `brief.py` 顶部的 `SOURCES`。当前包含：

@@ -23,17 +23,29 @@ def load_sources():
 
 SOURCES = load_sources()
 
-# ── 2. 兴趣画像 (决定什么算重要) ────────────────────────────
-INTERESTS = """我是 AI 从业者。我关心，按优先级：
-1. 主流大模型的新能力/新版本 (GPT、Claude、Gemini、Llama、Qwen、DeepSeek)
-2. AI Agent 与自动化工作流
-3. AI 编程与开发工具、新火起来的 Skills/MCP
-4. 开源模型与本地部署
-5. AI 行业融资、政策与大事
-请忽略纯营销、招聘、股价波动、以及无关的非 AI 话题。"""
+# ── 2. 提示词与配置（读取 prompts/ 目录）──────────────────
+PROMPT_DIR = os.path.join(BASE, "prompts")
+
+
+def load_config():
+    with open(os.path.join(PROMPT_DIR, "config.json"), encoding="utf-8") as f:
+        return json.load(f)
+
+
+def load_prompts():
+    with open(os.path.join(PROMPT_DIR, "interests.md"), encoding="utf-8") as f:
+        interests = f.read().strip()
+    with open(os.path.join(PROMPT_DIR, "brief.md"), encoding="utf-8") as f:
+        template = f.read()
+    return interests, template
+
+
+CFG = load_config()
+INTERESTS, PROMPT_TEMPLATE = load_prompts()
+EMOJI = CFG.get("section_emoji", {})
+MAX_AGE_DAYS = int(CFG.get("max_age_days", 3))
 
 UA = {"User-Agent": "Mozilla/5.0 (compatible; ai-brief/0.1)"}
-MAX_AGE_DAYS = 3
 REPORT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "reports")
 DATA_DIR = os.path.join(BASE, "data")
 STATE_DIR = os.path.join(BASE, "state")
@@ -76,7 +88,7 @@ def fetch(name, url):
             urllib.request.Request(url, headers=UA), timeout=20).read()
         d = feedparser.parse(raw)
         out = []
-        for e in d.entries[:25]:
+        for e in d.entries[:int(CFG.get("per_source_limit", 25))]:
             title = (getattr(e, "title", "") or "").strip()
             link = getattr(e, "link", "") or ""
             ts = None
@@ -146,46 +158,32 @@ def save_data(all_items, status):
     print(f"[数据] 累积 {len(existing)} 条 -> {store_path}", file=sys.stderr)
 
 
-EMOJI = {"今日头条": "☀️", "模型与产品": "🚀", "工具与Skills": "🛠️",
-         "研究与论文": "📄", "行业动态": "💰"}
+def build_prompt(items):
+    """用 prompts/brief.md 模板渲染最终提示词。"""
+    excerpt = int(CFG.get("excerpt_chars", 180))
+    listing = "\n".join(
+        f"{n+1}. [{i['source']}] {i['title']}\n   {i['excerpt'][:excerpt]}\n   {i['url']}"
+        for n, i in enumerate(items))
+    return (PROMPT_TEMPLATE
+            .replace("{{INTERESTS}}", INTERESTS)
+            .replace("{{MAX_AGE_DAYS}}", str(MAX_AGE_DAYS))
+            .replace("{{COUNT}}", str(len(items)))
+            .replace("{{HEADLINE_MIN}}", str(CFG.get("headline_min", 3)))
+            .replace("{{HEADLINE_MAX}}", str(CFG.get("headline_max", 5)))
+            .replace("{{SECTION_MIN}}", str(CFG.get("section_min", 3)))
+            .replace("{{SECTION_MAX}}", str(CFG.get("section_max", 8)))
+            .replace("{{SECTIONS}}", "、".join(CFG.get("sections", [])))
+            .replace("{{LISTING}}", listing))
 
 
 def call_deepseek(items):
     """让 DeepSeek 输出结构化 JSON：sections -> items。"""
     key = os.environ["DEEPSEEK_API_KEY"]
-    listing = "\n".join(
-        f"{n+1}. [{i['source']}] {i['title']}\n   {i['excerpt'][:180]}\n   {i['url']}"
-        for n, i in enumerate(items))
-    prompt = f"""{INTERESTS}
-
-下面是最近 {MAX_AGE_DAYS} 天抓到的候选资讯（{len(items)} 条）。请生成一份中文《AI 晨报》，只输出 JSON，不要任何额外说明。
-
-JSON 结构：
-{{
-  "sections": [
-    {{"name": "今日头条", "items": [
-        {{"title": "中文标题", "summary": "一句话摘要", "why": "为什么重要（一句话）", "url": "原文链接"}}
-    ]}},
-    {{"name": "模型与产品", "items": [
-        {{"title": "中文标题", "summary": "一句话摘要", "url": "原文链接"}}
-    ]}}
-  ]
-}}
-
-要求：
-- 只保留与上面兴趣相关的，无关的丢弃
-- 第一节固定为 "今日头条"，3-5 条，每条都必须有 summary 和 why
-- 其余节从这几个里选："模型与产品""工具与Skills""研究与论文""行业动态"，每节 3-8 条，每条含 summary 和 url，不需要 why
-- title 用简洁中文；url 必须是候选资讯里给出的原始链接，不要编造
-- 全文中文
-
-候选资讯：
-{listing}
-"""
+    prompt = build_prompt(items)
     body = json.dumps({
-        "model": "deepseek-chat",
+        "model": CFG.get("model", "deepseek-chat"),
         "messages": [{"role": "user", "content": prompt}],
-        "temperature": 0.4,
+        "temperature": CFG.get("temperature", 0.4),
         "response_format": {"type": "json_object"},
     }).encode()
     req = urllib.request.Request(
@@ -319,5 +317,7 @@ if __name__ == "__main__":
         generate()
     elif cmd == "push":
         push_only()
+    elif cmd == "prompt":
+        print(build_prompt([]))
     else:
         run_all()

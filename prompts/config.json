@@ -1,0 +1,19 @@
+{
+  "model": "deepseek-chat",
+  "temperature": 0.4,
+  "max_age_days": 3,
+  "headline_min": 3,
+  "headline_max": 5,
+  "section_min": 3,
+  "section_max": 8,
+  "sections": ["模型与产品", "工具与Skills", "研究与论文", "行业动态"],
+  "excerpt_chars": 180,
+  "per_source_limit": 25,
+  "section_emoji": {
+    "今日头条": "☀️",
+    "模型与产品": "🚀",
+    "工具与Skills": "🛠️",
+    "研究与论文": "📄",
+    "行业动态": "💰"
+  }
+}

@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>提示词 · ☀️ AI 晨报</title>
+  <meta name="description" content="每日 AI 前沿资讯：自动抓取、AI 筛选与摘要。">
+  <meta name="theme-color" content="#ffffff">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='88'>☀️</text></svg>">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <nav class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="index.html">☀️ AI 晨报</a>
+      <div class="tabs">
+        <a class="tab " href="index.html">AI日报</a>
+        <a class="tab " href="workflow.html">工作流</a>
+        <a class="tab " href="sources.html">资讯源</a>
+        <a class="tab active" href="prompts.html">提示词</a>
+      </div>
+    </div>
+  </nav>
+  <main class="container">
+<h1 class="page-title">提示词与规则</h1><p class="page-sub">这里是当前生效的 AI 配置。<b>修改位于仓库的 <code>prompts/</code> 目录</b>（<code>interests.md</code> / <code>brief.md</code> / <code>config.json</code>），保存后下次运行自动生效。</p><div class="facts"><div class="fact"><span class="fact-k">模型</span><span class="fact-v">deepseek-chat</span></div><div class="fact"><span class="fact-k">温度</span><span class="fact-v">0.4</span></div><div class="fact"><span class="fact-k">鲜度</span><span class="fact-v">最近 3 天</span></div><div class="fact"><span class="fact-k">头条数</span><span class="fact-v">3-5 条</span></div><div class="fact"><span class="fact-k">每节条数</span><span class="fact-v">3-8 条</span></div><div class="fact"><span class="fact-k">摘要长度</span><span class="fact-v">180 字</span></div></div><section class="prompt-sec"><h2>兴趣画像 <span class="src">prompts/interests.md</span></h2><pre class="code">我是 AI 从业者。我关心，按优先级：
+1. 主流大模型的新能力/新版本 (GPT、Claude、Gemini、Llama、Qwen、DeepSeek)
+2. AI Agent 与自动化工作流
+3. AI 编程与开发工具、新火起来的 Skills/MCP
+4. 开源模型与本地部署
+5. AI 行业融资、政策与大事
+请忽略纯营销、招聘、股价波动、以及无关的非 AI 话题。</pre></section><section class="prompt-sec"><h2>提示词模板 <span class="src">prompts/brief.md</span></h2><pre class="code">{{INTERESTS}}
+
+下面是最近 {{MAX_AGE_DAYS}} 天抓到的候选资讯（{{COUNT}} 条）。请生成一份中文《AI 晨报》，只输出 JSON，不要任何额外说明。
+
+JSON 结构：
+{
+  &quot;sections&quot;: [
+    {&quot;name&quot;: &quot;今日头条&quot;, &quot;items&quot;: [
+        {&quot;title&quot;: &quot;中文标题&quot;, &quot;summary&quot;: &quot;一句话摘要&quot;, &quot;why&quot;: &quot;为什么重要（一句话）&quot;, &quot;url&quot;: &quot;原文链接&quot;}
+    ]},
+    {&quot;name&quot;: &quot;模型与产品&quot;, &quot;items&quot;: [
+        {&quot;title&quot;: &quot;中文标题&quot;, &quot;summary&quot;: &quot;一句话摘要&quot;, &quot;url&quot;: &quot;原文链接&quot;}
+    ]}
+  ]
+}
+
+要求：
+- 只保留与上面兴趣相关的，无关的丢弃
+- 第一节固定为 &quot;今日头条&quot;，{{HEADLINE_MIN}}-{{HEADLINE_MAX}} 条，每条都必须有 summary 和 why
+- 其余节从这几个里选：{{SECTIONS}}，每节 {{SECTION_MIN}}-{{SECTION_MAX}} 条，每条含 summary 和 url，不需要 why
+- title 用简洁中文；url 必须是候选资讯里给出的原始链接，不要编造
+- 全文中文
+
+候选资讯：
+{{LISTING}}
+</pre><p class="prompt-note">运行时自动替换的占位符：<code>{{INTERESTS}}</code> <code>{{MAX_AGE_DAYS}}</code> <code>{{COUNT}}</code> <code>{{HEADLINE_MIN}}</code> <code>{{HEADLINE_MAX}}</code> <code>{{SECTION_MIN}}</code> <code>{{SECTION_MAX}}</code> <code>{{SECTIONS}}</code> <code>{{LISTING}}</code></p></section><section class="prompt-sec"><h2>板块规则 <span class="src">prompts/config.json</span></h2><ul class="rules"><li>☀️ 今日头条：3-5 条，每条含摘要 + “为什么重要”</li><li>🚀 模型与产品：每节 3-8 条</li><li>🛠️ 工具与Skills：每节 3-8 条</li><li>📄 研究与论文：每节 3-8 条</li><li>💰 行业动态：每节 3-8 条</li></ul></section>
+    <footer>由 GitHub Actions 自动生成 · 数据归你所有</footer>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
