@@ -1,4 +1,4 @@
-/* 站点交互：工作流（横向节点 + 左右连接点 + 拖动 + 弹窗）；资讯源历史弹窗 */
+/* 站点交互：工作流（自动换行 + 左右连接点 + 拖动 + 弹窗）；资讯源历史弹窗 */
 (function () {
   "use strict";
 
@@ -39,14 +39,15 @@
     if (m) m.classList.remove("open");
   }
 
-  /* ---------------- 工作流 ---------------- */
+  /* ---------------- 工作流（蛇形换行） ---------------- */
   function initFlow() {
     var canvas = document.getElementById("flowCanvas");
     var svg = document.getElementById("flowLinks");
     var nodes = window.WORKFLOW_NODES;
     if (!canvas || !svg || !nodes || !nodes.length) return;
 
-    var NW = 186, GAP = 40, PAD = 26, MINH = 320;
+    var NW = 186, GAP = 40, PADX = 26, PADY = 34, ROWGAP = 34;
+    var cols = nodes.length;
 
     var els = nodes.map(function (n, i) {
       var el = document.createElement("div");
@@ -68,16 +69,32 @@
     });
 
     function layout() {
-      var maxH = 0;
-      els.forEach(function (el) { maxH = Math.max(maxH, el.offsetHeight); });
-      var H = Math.max(MINH, maxH + 90);
-      var totalW = nodes.length * NW + (nodes.length - 1) * GAP + PAD * 2;
       var wrapW = canvas.parentElement.clientWidth || 900;
-      canvas.style.width = Math.max(totalW, wrapW) + "px";
-      canvas.style.height = H + "px";
-      els.forEach(function (el) {
-        el.style.left = (PAD + el._i * (NW + GAP)) + "px";
-        el.style.top = ((H - el.offsetHeight) / 2) + "px";
+      cols = Math.max(1, Math.min(nodes.length,
+        Math.floor((wrapW - 2 * PADX + GAP) / (NW + GAP))));
+      var rows = Math.ceil(nodes.length / cols);
+
+      var rowH = [];
+      for (var r = 0; r < rows; r++) rowH.push(0);
+      els.forEach(function (el, i) {
+        var r = Math.floor(i / cols);
+        rowH[r] = Math.max(rowH[r], el.offsetHeight);
+      });
+      var totalH = PADY * 2 + rowH.reduce(function (a, b) { return a + b; }, 0) +
+        (rows - 1) * ROWGAP;
+
+      canvas.style.width = wrapW + "px";
+      canvas.style.height = totalH + "px";
+
+      var rowTop = [], y = PADY;
+      for (var r2 = 0; r2 < rows; r2++) { rowTop.push(y); y += rowH[r2] + ROWGAP; }
+
+      els.forEach(function (el, i) {
+        var r3 = Math.floor(i / cols), pos = i % cols;
+        // 蛇形：偶数行从左到右，奇数行从右到左
+        var col = (r3 % 2 === 0) ? pos : (cols - 1 - pos);
+        el.style.left = (PADX + col * (NW + GAP)) + "px";
+        el.style.top = (rowTop[r3] + (rowH[r3] - el.offsetHeight) / 2) + "px";
       });
     }
 
@@ -86,22 +103,43 @@
       svg.setAttribute("width", w);
       svg.setAttribute("height", h);
       svg.setAttribute("viewBox", "0 0 " + w + " " + h);
+
       var parts = ['<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" ' +
         'markerWidth="7" markerHeight="7" orient="auto-start-reverse">' +
         '<path d="M0,0 L10,5 L0,10 z" fill="#b7c6e6"/></marker></defs>'];
       var dots = [];
+
       for (var i = 0; i < els.length; i++) {
         var el = els[i];
         var cy = el.offsetTop + el.offsetHeight / 2;
         var lx = el.offsetLeft, rx = el.offsetLeft + el.offsetWidth;
         dots.push('<circle cx="' + lx + '" cy="' + cy + '" r="4"/>');
         dots.push('<circle cx="' + rx + '" cy="' + cy + '" r="4"/>');
-        if (i < els.length - 1) {
-          var nx2 = els[i + 1].offsetLeft;
-          var ny2 = els[i + 1].offsetTop + els[i + 1].offsetHeight / 2;
-          parts.push('<path class="link" marker-end="url(#arrow)" d="M' + rx + "," + cy +
-            " L" + nx2 + "," + ny2 + '"/>');
+
+        if (i === els.length - 1) continue;
+        var a = el, b = els[i + 1];
+        var aRow = Math.floor(i / cols), bRow = Math.floor((i + 1) / cols);
+        var ay = a.offsetTop + a.offsetHeight / 2;
+        var by = b.offsetTop + b.offsetHeight / 2;
+        var x1, x2, d;
+        if (aRow === bRow) {
+          if (aRow % 2 === 0) { // 偶数行：向右
+            x1 = a.offsetLeft + a.offsetWidth; x2 = b.offsetLeft;
+          } else {              // 奇数行：向左
+            x1 = a.offsetLeft; x2 = b.offsetLeft + b.offsetWidth;
+          }
+          d = "M" + x1 + "," + ay + " L" + x2 + "," + by;
+        } else {
+          // 换行：从同一侧连接（右→右 / 左→左）
+          if (aRow % 2 === 0) {
+            x1 = a.offsetLeft + a.offsetWidth; x2 = b.offsetLeft + b.offsetWidth;
+          } else {
+            x1 = a.offsetLeft; x2 = b.offsetLeft;
+          }
+          d = "M" + x1 + "," + ay + " C" + x1 + "," + (ay + 46) + " " +
+              x2 + "," + (by - 46) + " " + x2 + "," + by;
         }
+        parts.push('<path class="link" marker-end="url(#arrow)" d="' + d + '"/>');
       }
       svg.innerHTML = parts.join("") + '<g class="dots">' + dots.join("") + "</g>";
     }

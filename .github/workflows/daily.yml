@@ -2,8 +2,9 @@ name: Daily AI Brief
 
 on:
   schedule:
-    # UTC 00:00 = 北京时间 08:00
+    # UTC 00:00 = 北京时间 08:00；00:30 为备份（若 00:00 未触发或失败）
     - cron: "0 0 * * *"
+    - cron: "30 0 * * *"
   workflow_dispatch:
 
 permissions:
@@ -23,16 +24,31 @@ jobs:
       - name: Install deps
         run: pip install -r requirements.txt
 
+      - name: Check today's brief
+        id: check
+        run: |
+          TODAY=$(TZ=Asia/Shanghai date +%F)
+          echo "today=$TODAY" >> "$GITHUB_OUTPUT"
+          if [ -f "reports/brief-$TODAY.json" ] && [ "${{ github.event_name }}" = "schedule" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "今天的晨报已存在，跳过（备份触发）"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Generate & push brief
+        if: steps.check.outputs.skip != 'true'
         env:
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
           FEISHU_WEBHOOK_URL: ${{ secrets.FEISHU_WEBHOOK_URL }}
         run: python brief.py
 
       - name: Build website
+        if: steps.check.outputs.skip != 'true'
         run: python3 build_site.py
 
       - name: Commit reports & site
+        if: steps.check.outputs.skip != 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
