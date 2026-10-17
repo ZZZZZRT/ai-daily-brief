@@ -69,7 +69,7 @@ python brief.py
 - **生成/推送分离**：`python brief.py generate` 只生成，`python brief.py push` 只推送。
 - **校验**：`python3 check.py all` 检查「生成 / 推送 / 网站」三项。
 - **失败告警**：任务失败时自动发飞书告警。
-- **冗余触发**：GitHub 定时 + 外部定时（cron-job.org 调用 `workflow_dispatch`），可重复触发。
+- **冗余触发**：GitHub 定时 + 外部定时（Cloudflare Worker Cron 调用 `workflow_dispatch`），可重复触发。
 
 ## 路线图
 

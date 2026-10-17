@@ -33,7 +33,7 @@
 
 ## 可靠性与幂等（不漏推、不重复推）
 
-- 触发：GitHub schedule（00:00 / 00:30 UTC）+ 外部定时（cron-job.org）调用 `workflow_dispatch`，可重复触发。
+- 触发：GitHub schedule（00:00 / 00:30 UTC）+ 外部定时（Cloudflare Worker Cron：ai-brief-cron）调用 `workflow_dispatch`，可重复触发。
 - 幂等：`state/<日期>.json` 记录 `generated_at` / `pushed_at`；`python brief.py push` 若已有 `pushed_at` 则跳过。
 - 校验：`python3 check.py all` 检查「生成 / 推送 / 网站」三项，任一缺失即任务失败。
 - 告警：任务失败时通过飞书发送告警。
