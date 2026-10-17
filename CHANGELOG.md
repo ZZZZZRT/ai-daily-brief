@@ -1,5 +1,12 @@
 # 变更记录
 
+## 2026-10-17 · 收尾：外部定时与运维文档
+- 外部定时改用 **Cloudflare Worker Cron**（`ai-brief-cron`），含临时测试触发，验证后已删除。
+- 实测确认：外部触发成功、幂等生效（`已生成=yes 已推送=yes`，`no changes`）、网站更新到今天。
+- 记录 GitHub 自带定时器曾延迟 2 小时以上。
+- 更新 `AGENTS.md` 的当前进展 / 运维速查 / 已知限制。
+
+
 ## 2026-10-17 · 可靠性改造（幂等 + 校验 + 告警）
 - `brief.py` 拆分为子命令：`generate`（只生成）/ `push`（幂等推送）/ `all`。
 - 新增 `state/<日期>.json` 幂等账本（`generated_at` / `pushed_at` / `attempts`），已推送则跳过，避免重复推送。

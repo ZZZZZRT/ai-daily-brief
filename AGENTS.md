@@ -88,18 +88,28 @@
 
 ## 当前进展
 
-- [x] 第 1 期：抓取 + DeepSeek 筛选 + 飞书推送 + 存档（已上线，每天 8:00）
-- [x] 第 3 期：网站生成器 `build_site.py` → `docs/`（每日自动更新）
-- [x] 网站托管改用 Cloudflare Workers + 密码鉴权（`worker.js` + `wrangler.jsonc`），URL 待填
+- [x] 第 1 期：抓取 + DeepSeek 筛选 + 飞书推送 + 存档（每天 8:00 自动）
+- [x] 第 3 期：网站（首页 / 历史 / 原文 / 工作流 / 资讯源），构建于 `docs/`
+- [x] 可靠性与幂等：状态账本 + 校验 + 失败告警 + Cloudflare Worker Cron 外部触发
+- [x] 网站托管：GitHub Pages（公开）https://zzzzzrt.github.io/ai-daily-brief/
+- [x] 信息源：15 个（含中文媒体：量子位 / 雷锋网 / InfoQ / 爱范儿 / 开源中国）
 - [ ] 第 2 期：接入 X / Reddit / 小红书 / B站 等社交源
 - [ ] 第 4 期：知识库 + AI 问答
+- [ ] 可选：Cloudflare Worker 托管 + 密码（`worker.js` / `wrangler.jsonc` 已就绪，因 workers.dev 国内被墙暂缓）
 
-## 如何验证
+## 运维速查
 
-- 手动触发：GitHub → Actions → Daily AI Brief → Run workflow
-- 看结果：飞书消息 + `reports/` 新增文件
+- 站点：https://zzzzzrt.github.io/ai-daily-brief/ （GitHub Pages，随 push 自动更新）
+- 仓库：https://github.com/ZZZZZRT/ai-daily-brief
+- Actions：https://github.com/ZZZZZRT/ai-daily-brief/actions/workflows/daily.yml
+- 外部定时：Cloudflare Worker `ai-brief-cron`（Cron：`5,35 0 * * *`、`5 1 * * *`）
+- 手动补跑：Actions → Daily AI Brief → Run workflow（幂等，不会重复推送）
+- 查看状态：`python3 check.py all`；查看账本：`cat state/<日期>.json`
+- 失败排查：看 Actions 日志；连续失败会收到飞书告警
 
 ## 已知限制
 
-- 当前使用的 GitHub Token 是**细粒度只读**，无法用 CLI 创建仓库或写入 Secrets，需在网页操作。
-- 信息源目前以英文 RSS 为主，中文源与社交源待第 2 期补充。
+- GitHub 自带定时器不可靠（曾延迟 2 小时以上），已用 Cloudflare Worker Cron 兜底。
+- `*.workers.dev` 在国内被 DNS 污染，网站改用 GitHub Pages；Cloudflare 托管 + 密码方案保留备用。
+- 信息源 15 个（英文官方/媒体 + 中文媒体），社交源（X / Reddit / 小红书 / B站）待第 2 期。
+- AI 只看标题与 ≤180 字摘要，未读正文全文，摘要与观点可能不完整。
