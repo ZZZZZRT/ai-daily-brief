@@ -23,6 +23,9 @@
 | `prompts/interests.md` | **兴趣画像**（决定什么算重要） |
 | `prompts/brief.md` | **提示词模板**（占位符由 `brief.py` 运行时替换） |
 | `prompts/config.json` | **AI 配置**：模型、温度、鲜度、各板块条数、摘要长度、emoji |
+| `promptlib.py` | 提示词加载与渲染（`brief.py` 与 `admin.py` 共用，无第三方依赖） |
+| `admin.py` | **本地控制台**（仅 127.0.0.1:8123）：编辑提示词、保存同步、试跑 |
+| `templates/admin.html` | 控制台页面 |
 | `templates/style.css` | **网站样式**（前端改动入口） |
 | `templates/page.html` | **页面骨架**（前端改动入口），占位符 `{{TITLE}} {{CSS_URL}} {{SITE}} {{SUB}} {{BODY}}` |
 | `templates/app.js` | **前端交互脚本**（工作流拖动/连线/弹窗、资讯源历史弹窗） |
@@ -97,6 +100,7 @@
 - [x] 可靠性与幂等：状态账本 + 校验 + 失败告警 + Cloudflare Worker Cron 外部触发
 - [x] 网站托管：GitHub Pages（公开）https://zzzzzrt.github.io/ai-daily-brief/
 - [x] 信息源：15 个（含中文媒体：量子位 / 雷锋网 / InfoQ / 爱范儿 / 开源中国）
+- [x] 本地控制台：在线编辑提示词 / 配置 → 保存同步 GitHub → 试跑预览
 - [ ] 第 2 期：接入 X / Reddit / 小红书 / B站 等社交源
 - [ ] 第 4 期：知识库 + AI 问答
 - [ ] 可选：Cloudflare Worker 托管 + 密码（`worker.js` / `wrangler.jsonc` 已就绪，因 workers.dev 国内被墙暂缓）
@@ -108,6 +112,8 @@
 - Actions：https://github.com/ZZZZZRT/ai-daily-brief/actions/workflows/daily.yml
 - 外部定时：Cloudflare Worker `ai-brief-cron`（Cron：`5,35 0 * * *`、`5 1 * * *`）
 - 手动补跑：Actions → Daily AI Brief → Run workflow（幂等，不会重复推送）
+- **本地控制台**：`python3 admin.py` → http://localhost:8123/admin
+  （本地 `.env` 提供 `DEEPSEEK_API_KEY`；保存会写文件 + 重建网站 + git commit/push）
 - 查看状态：`python3 check.py all`；查看账本：`cat state/<日期>.json`
 - 失败排查：看 Actions 日志；连续失败会收到飞书告警
 

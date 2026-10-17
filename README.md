@@ -66,6 +66,21 @@ python brief.py prompt
 OpenAI、Google DeepMind、Google AI Blog、HuggingFace、arXiv cs.AI、
 TLDR AI、Ben's Bites、Simon Willison、MIT Tech Review AI、量子位、Hacker News。
 
+## 本地控制台（调提示词）
+
+```bash
+python3 admin.py
+```
+
+打开 http://localhost:8123/admin ：
+
+- 在线编辑**兴趣画像 / 提示词模板 / 模型参数**
+- **保存并同步**：写本地文件 → 重新生成网站 → `git commit + push`
+- **预览最终提示词**（不调用 AI，不花钱）
+- **试跑一次**（调用 AI，写入 `reports/preview.*`，不推送、不改状态）
+
+需要本地 `.env`（已被 gitignore）提供 `DEEPSEEK_API_KEY`。
+
 ## 本地运行
 
 ```bash

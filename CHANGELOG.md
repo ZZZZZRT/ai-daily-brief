@@ -1,5 +1,15 @@
 # 变更记录
 
+## 2026-10-17 · 本地控制台 A
+- 新增 `admin.py`（仅 127.0.0.1:8123）：托管网站 + `/admin` 控制台。
+- 新增 `templates/admin.html`：在线编辑兴趣画像、提示词模板、模型参数。
+- 保存流程：写 `prompts/` → 重建网站 → `git add prompts/ docs/` → commit + push；内容无变化时跳过。
+- 新增「预览最终提示词」（不调用 AI）与「试跑一次」（调用 AI，写 `reports/preview.*`，不推送）。
+- 新增 `promptlib.py`：提示词加载/渲染共用模块；`brief.py` 改为引用它。
+- 本地 `.env`（gitignore）提供 `DEEPSEEK_API_KEY`。
+- `brief.py` 新增 `preview` 子命令。
+
+
 ## 2026-10-17 · 提示词解耦 + 前端展示
 - 提示词从 `brief.py` 抽离到 `prompts/`：`interests.md`（兴趣画像）、`brief.md`（模板）、`config.json`（模型/温度/条数/emoji）。
 - `brief.py` 新增 `build_prompt()` 与 `prompt` 子命令（预览最终提示词，不发请求）。

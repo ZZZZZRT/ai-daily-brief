@@ -24,22 +24,9 @@ def load_sources():
 SOURCES = load_sources()
 
 # ── 2. 提示词与配置（读取 prompts/ 目录）──────────────────
+from promptlib import load_config, load_prompts, build_prompt
+
 PROMPT_DIR = os.path.join(BASE, "prompts")
-
-
-def load_config():
-    with open(os.path.join(PROMPT_DIR, "config.json"), encoding="utf-8") as f:
-        return json.load(f)
-
-
-def load_prompts():
-    with open(os.path.join(PROMPT_DIR, "interests.md"), encoding="utf-8") as f:
-        interests = f.read().strip()
-    with open(os.path.join(PROMPT_DIR, "brief.md"), encoding="utf-8") as f:
-        template = f.read()
-    return interests, template
-
-
 CFG = load_config()
 INTERESTS, PROMPT_TEMPLATE = load_prompts()
 EMOJI = CFG.get("section_emoji", {})
@@ -156,24 +143,6 @@ def save_data(all_items, status):
     with open(os.path.join(DATA_DIR, "sources_status.json"), "w", encoding="utf-8") as f:
         json.dump(status, f, ensure_ascii=False, indent=2)
     print(f"[数据] 累积 {len(existing)} 条 -> {store_path}", file=sys.stderr)
-
-
-def build_prompt(items):
-    """用 prompts/brief.md 模板渲染最终提示词。"""
-    excerpt = int(CFG.get("excerpt_chars", 180))
-    listing = "\n".join(
-        f"{n+1}. [{i['source']}] {i['title']}\n   {i['excerpt'][:excerpt]}\n   {i['url']}"
-        for n, i in enumerate(items))
-    return (PROMPT_TEMPLATE
-            .replace("{{INTERESTS}}", INTERESTS)
-            .replace("{{MAX_AGE_DAYS}}", str(MAX_AGE_DAYS))
-            .replace("{{COUNT}}", str(len(items)))
-            .replace("{{HEADLINE_MIN}}", str(CFG.get("headline_min", 3)))
-            .replace("{{HEADLINE_MAX}}", str(CFG.get("headline_max", 5)))
-            .replace("{{SECTION_MIN}}", str(CFG.get("section_min", 3)))
-            .replace("{{SECTION_MAX}}", str(CFG.get("section_max", 8)))
-            .replace("{{SECTIONS}}", "、".join(CFG.get("sections", [])))
-            .replace("{{LISTING}}", listing))
 
 
 def call_deepseek(items):
@@ -306,6 +275,24 @@ def push_only():
     return True
 
 
+def preview():
+    """本地试跑：抓取 + 调用 AI，写入 reports/preview.*，不推送、不改状态。"""
+    date = bj_today()
+    print("① 抓取信息源 ...", file=sys.stderr)
+    fresh, all_items, status = collect()
+    print(f"   候选 {len(fresh)} 条", file=sys.stderr)
+    print("② 调用 DeepSeek（试跑，不推送）...", file=sys.stderr)
+    data = enrich(call_deepseek(fresh), all_items)
+    os.makedirs(REPORT_DIR, exist_ok=True)
+    with open(os.path.join(REPORT_DIR, "preview.json"), "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False)
+    md = to_markdown(data, date)
+    with open(os.path.join(REPORT_DIR, "preview.md"), "w", encoding="utf-8") as f:
+        f.write(md)
+    print(f"[试跑完成] {date}", file=sys.stderr)
+    print(md)
+
+
 def run_all():
     generate()
     push_only()
@@ -317,6 +304,8 @@ if __name__ == "__main__":
         generate()
     elif cmd == "push":
         push_only()
+    elif cmd == "preview":
+        preview()
     elif cmd == "prompt":
         print(build_prompt([]))
     else:

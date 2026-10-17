@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>本地控制台 · ☀️ AI 晨报</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='88'>🛠️</text></svg>">
+  <link rel="stylesheet" href="/style.css">
+  <style>
+    .editor{width:100%;border:1px solid var(--line);border-radius:12px;padding:14px 16px;
+      background:#fff;color:var(--fg);font-size:14px;line-height:1.7;resize:vertical}
+    .editor:focus{outline:2px solid var(--accent);outline-offset:1px}
+    #interests{min-height:150px}
+    #brief{min-height:360px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13px}
+    .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px}
+    .field label{display:block;font-size:12.5px;color:var(--muted);margin-bottom:5px}
+    .field input{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:9px;
+      font-size:14px;background:#fff;color:var(--fg)}
+    .actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:26px}
+    .btn{border:1px solid var(--line);background:#fff;border-radius:10px;padding:9px 16px;
+      font-size:14px;cursor:pointer;color:var(--fg);transition:all .15s ease}
+    .btn:hover{border-color:#c7d2fe;box-shadow:var(--shadow-1)}
+    .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+    .btn.primary:hover{background:var(--accent-strong)}
+    .btn:disabled{opacity:.5;cursor:not-allowed}
+    #status{color:var(--muted);font-size:13px}
+    #status.ok{color:var(--ok)} #status.err{color:var(--err)}
+    #output-wrap[hidden]{display:none}
+    #output{max-height:520px}
+    .hint{color:var(--muted);font-size:12.5px;margin:6px 0 0}
+  </style>
+</head>
+<body>
+  <nav class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="/">☀️ AI 晨报</a>
+      <div class="tabs">
+        <a class="tab" href="/">AI日报</a>
+        <a class="tab active" href="/admin">本地控制台</a>
+      </div>
+    </div>
+  </nav>
+  <main class="container">
+    <h1 class="page-title">本地控制台</h1>
+    <p class="page-sub">在这里调整 AI 的提示词与规则。<b>保存后会写入本地文件、重新生成网站，并提交推送到 GitHub。</b></p>
+
+    <section class="prompt-sec">
+      <h2>兴趣画像 <span class="src">prompts/interests.md</span></h2>
+      <textarea id="interests" class="editor" spellcheck="false"></textarea>
+      <p class="hint">决定“什么算重要”。越具体，筛选越准。</p>
+    </section>
+
+    <section class="prompt-sec">
+      <h2>提示词模板 <span class="src">prompts/brief.md</span></h2>
+      <textarea id="brief" class="editor" spellcheck="false"></textarea>
+      <p class="hint">可用占位符：{{INTERESTS}} {{MAX_AGE_DAYS}} {{COUNT}} {{HEADLINE_MIN}} {{HEADLINE_MAX}} {{SECTION_MIN}} {{SECTION_MAX}} {{SECTIONS}} {{LISTING}}</p>
+    </section>
+
+    <section class="prompt-sec">
+      <h2>配置 <span class="src">prompts/config.json</span></h2>
+      <div class="form-grid">
+        <div class="field"><label>模型</label><input id="model" type="text"></div>
+        <div class="field"><label>温度（0–1）</label><input id="temperature" type="number" step="0.1" min="0" max="1"></div>
+        <div class="field"><label>鲜度天数</label><input id="max_age_days" type="number" min="1"></div>
+        <div class="field"><label>头条最少</label><input id="headline_min" type="number" min="1"></div>
+        <div class="field"><label>头条最多</label><input id="headline_max" type="number" min="1"></div>
+        <div class="field"><label>每节最少</label><input id="section_min" type="number" min="1"></div>
+        <div class="field"><label>每节最多</label><input id="section_max" type="number" min="1"></div>
+        <div class="field"><label>摘要长度（字）</label><input id="excerpt_chars" type="number" min="40"></div>
+        <div class="field"><label>每源抓取条数</label><input id="per_source_limit" type="number" min="5"></div>
+        <div class="field" style="grid-column:1/-1"><label>板块（用顿号或逗号分隔）</label><input id="sections" type="text"></div>
+      </div>
+    </section>
+
+    <div class="actions">
+      <button id="save" class="btn primary">保存并同步</button>
+      <button id="preview" class="btn">预览最终提示词</button>
+      <button id="run" class="btn">试跑一次（调用 AI，不推送）</button>
+      <button id="reload" class="btn">重新加载</button>
+      <span id="status"></span>
+    </div>
+
+    <section id="output-wrap" class="prompt-sec" hidden>
+      <h2 id="output-title">输出</h2>
+      <pre id="output" class="code"></pre>
+    </section>
+  </main>
+
+  <script>
+    var DATA = null;
+    var $ = function (id) { return document.getElementById(id); };
+    var FIELDS = ["model", "temperature", "max_age_days", "headline_min", "headline_max",
+                  "section_min", "section_max", "excerpt_chars", "per_source_limit"];
+
+    function setStatus(msg, cls) {
+      var s = $("status");
+      s.textContent = msg || "";
+      s.className = cls || "";
+    }
+    function showOutput(title, text) {
+      $("output-title").textContent = title;
+      $("output").textContent = text || "";
+      $("output-wrap").hidden = false;
+    }
+
+    async function loadData() {
+      setStatus("加载中…");
+      var r = await fetch("/api/data");
+      DATA = await r.json();
+      $("interests").value = DATA.interests || "";
+      $("brief").value = DATA.brief || "";
+      var c = DATA.config || {};
+      FIELDS.forEach(function (k) { if (c[k] !== undefined) $(k).value = c[k]; });
+      $("sections").value = (c.sections || []).join("、");
+      setStatus("已加载", "ok");
+    }
+
+    function currentConfig() {
+      var c = Object.assign({}, (DATA && DATA.config) || {});
+      c.model = $("model").value.trim();
+      c.temperature = parseFloat($("temperature").value);
+      ["max_age_days", "headline_min", "headline_max", "section_min", "section_max",
+       "excerpt_chars", "per_source_limit"].forEach(function (k) {
+        c[k] = parseInt($(k).value, 10);
+      });
+      c.sections = $("sections").value.split(/[、,，\s]+/).filter(Boolean);
+      return c;
+    }
+
+    async function post(path, body) {
+      var r = await fetch(path, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body || {})
+      });
+      return await r.json();
+    }
+
+    $("save").onclick = async function () {
+      var btn = this; btn.disabled = true;
+      setStatus("保存中（生成网站 + 提交推送）…");
+      try {
+        var res = await post("/api/save", {
+          interests: $("interests").value,
+          brief: $("brief").value,
+          config: currentConfig()
+        });
+        if (!res.ok) {
+          setStatus("保存失败：" + (res.error || "见下方输出"), "err");
+        } else {
+          setStatus(res.changed ? "已保存并推送到 GitHub" : "已保存（无变化）", "ok");
+        }
+        var lines = [];
+        if (res.error) lines.push("错误：" + res.error);
+        (res.steps || []).forEach(function (s) {
+          lines.push("▶ " + s.name + "（退出码 " + s.code + "）");
+          if (s.out) lines.push(s.out);
+          if (s.err) lines.push("stderr:\n" + s.err);
+        });
+        showOutput("保存结果", lines.join("\n\n"));
+        if (res.ok) { DATA.config = currentConfig(); }
+      } catch (e) {
+        setStatus("请求失败：" + e, "err");
+      } finally { btn.disabled = false; }
+    };
+
+    $("preview").onclick = async function () {
+      var btn = this; btn.disabled = true;
+      setStatus("渲染中…");
+      try {
+        var res = await post("/api/preview");
+        showOutput("最终提示词（示例数据）", res.prompt || res.error || "");
+        setStatus(res.ok ? "已生成预览" : "失败", res.ok ? "ok" : "err");
+      } catch (e) { setStatus("请求失败：" + e, "err"); }
+      finally { btn.disabled = false; }
+    };
+
+    $("run").onclick = async function () {
+      var btn = this; btn.disabled = true;
+      setStatus("试跑中（抓取 + 调用 AI，约 20–60 秒）…");
+      try {
+        var res = await post("/api/run");
+        showOutput("试跑结果（Markdown，未推送）", (res.markdown || "") + (res.err ? "\n\n--- stderr ---\n" + res.err : ""));
+        setStatus(res.ok ? "试跑完成（未推送）" : "试跑失败", res.ok ? "ok" : "err");
+      } catch (e) { setStatus("请求失败：" + e, "err"); }
+      finally { btn.disabled = false; }
+    };
+
+    $("reload").onclick = loadData;
+
+    loadData();
+  </script>
+</body>
+</html>

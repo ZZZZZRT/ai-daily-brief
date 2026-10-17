@@ -4,3 +4,6 @@
 __pycache__/
 *.pyc
 .DS_Store
+
+# 本地试跑产物
+reports/preview.*
