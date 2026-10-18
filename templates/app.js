@@ -218,8 +218,23 @@
     });
   }
 
+  /* ---------------- 本地访问时追加「本地控制台」tab ---------------- */
+  function initLocalTab() {
+    var h = location.hostname;
+    if (h !== "localhost" && h !== "127.0.0.1") return;
+    var tabs = document.querySelector(".topbar .tabs");
+    if (!tabs) return;
+    if (tabs.querySelector('a[href="/admin"], a[href="admin"]')) return;
+    var a = document.createElement("a");
+    a.className = "tab";
+    a.href = "/admin";
+    a.textContent = "本地控制台";
+    tabs.appendChild(a);
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
     initFlow();
     initSources();
+    initLocalTab();
   });
 })();

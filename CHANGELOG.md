@@ -1,5 +1,11 @@
 # 变更记录
 
+## 2026-10-18 · 统一前端 tab 栏
+- `templates/admin.html` 的 tab 栏补齐为 5 个（AI日报 / 工作流 / 资讯源 / 提示词 / 本地控制台），与站点一致。
+- `templates/app.js` 新增 `initLocalTab()`：仅在 `localhost` / `127.0.0.1` 访问时向站点页面追加「本地控制台」tab；公网不追加，避免 404。
+- 全局检查：生成页面统一 4 个 tab，admin 固定 5 个，只有 `page.html` 与 `admin.html` 两处定义 tab 栏。
+
+
 ## 2026-10-17 · 本地控制台 A
 - 新增 `admin.py`（仅 127.0.0.1:8123）：托管网站 + `/admin` 控制台。
 - 新增 `templates/admin.html`：在线编辑兴趣画像、提示词模板、模型参数。

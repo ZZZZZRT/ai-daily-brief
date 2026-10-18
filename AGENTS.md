@@ -61,6 +61,7 @@
 - 顶部标签栏（`templates/page.html` 的 `.tabs`）：`AI日报`（index.html）、`工作流`（workflow.html）、`资讯源`（sources.html）、`提示词`（prompts.html）。
 - `build_site.py` 生成：`index.html`（当前晨报 + 往期列表）、每日页 `<日期>.html`、`workflow.html`（可拖动节点+弹窗）、`sources.html`（状态+历史弹窗）、`prompts.html`（当前提示词与规则）。
 - 交互脚本 `templates/app.js` 会被拷到 `docs/app.js`；资讯数据从 `docs/data/items.json` 读取（因此本地预览要用 HTTP 服务，不能用 file://）。
+- 本地访问（`localhost` / `127.0.0.1`）时，`app.js` 会自动追加「本地控制台」tab；公网不追加（避免 404）。`templates/admin.html` 固定显示 5 个 tab。
 - 本地预览：`cd docs && python3 -m http.server 8123`，然后打开 http://localhost:8123/ 。
 
 ## 本地 / 线上边界（重要，别搞错）

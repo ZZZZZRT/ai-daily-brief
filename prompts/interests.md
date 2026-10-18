@@ -1,5 +1,5 @@
 我是 AI 从业者。我关心，按优先级：
-1. 主流大模型的新能力/新版本 (GPT、Claude、Gemini、Llama、Qwen、DeepSeek)
+1. 主流大模型的新能力/新版本 (GPT、Claude、Gemini、Llama、Qwen、DeepSeek 等等)
 2. AI Agent 与自动化工作流
 3. AI 编程与开发工具、新火起来的 Skills/MCP
 4. 开源模型与本地部署
