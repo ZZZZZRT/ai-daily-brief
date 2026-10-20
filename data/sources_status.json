@@ -2,76 +2,76 @@
   "OpenAI 官方": {
     "ok": true,
     "fetched": 25,
-    "last_run": "2026-10-19T00:05:42"
+    "last_run": "2026-10-20T00:05:45"
   },
   "Google DeepMind": {
     "ok": true,
-    "fetched": 0,
-    "last_run": "2026-10-19T00:05:42"
+    "fetched": 25,
+    "last_run": "2026-10-20T00:05:45"
   },
   "Google AI Blog": {
     "ok": true,
     "fetched": 20,
-    "last_run": "2026-10-19T00:05:42"
+    "last_run": "2026-10-20T00:05:45"
   },
   "HuggingFace Blog": {
     "ok": true,
     "fetched": 25,
-    "last_run": "2026-10-19T00:05:42"
+    "last_run": "2026-10-20T00:05:45"
   },
   "arXiv cs.AI": {
     "ok": true,
-    "fetched": 0,
-    "last_run": "2026-10-19T00:05:42"
+    "fetched": 25,
+    "last_run": "2026-10-20T00:05:45"
   },
   "TLDR AI": {
     "ok": true,
     "fetched": 20,
-    "last_run": "2026-10-19T00:05:42"
+    "last_run": "2026-10-20T00:05:45"
   },
   "Ben's Bites": {
     "ok": true,
     "fetched": 20,
-    "last_run": "2026-10-19T00:05:42"
+    "last_run": "2026-10-20T00:05:45"
   },
   "Simon Willison": {
     "ok": true,
     "fetched": 25,
-    "last_run": "2026-10-19T00:05:42"
+    "last_run": "2026-10-20T00:05:45"
   },
   "MIT Tech Review AI": {
     "ok": true,
     "fetched": 10,
-    "last_run": "2026-10-19T00:05:42"
+    "last_run": "2026-10-20T00:05:45"
   },
   "量子位": {
     "ok": true,
     "fetched": 10,
-    "last_run": "2026-10-19T00:05:42"
+    "last_run": "2026-10-20T00:05:45"
   },
   "雷锋网": {
     "ok": true,
     "fetched": 20,
-    "last_run": "2026-10-19T00:05:42"
+    "last_run": "2026-10-20T00:05:45"
   },
   "InfoQ 中文": {
     "ok": true,
     "fetched": 20,
-    "last_run": "2026-10-19T00:05:42"
+    "last_run": "2026-10-20T00:05:45"
   },
   "爱范儿": {
     "ok": true,
     "fetched": 20,
-    "last_run": "2026-10-19T00:05:42"
+    "last_run": "2026-10-20T00:05:45"
   },
   "开源中国": {
     "ok": true,
     "fetched": 25,
-    "last_run": "2026-10-19T00:05:42"
+    "last_run": "2026-10-20T00:05:45"
   },
   "Hacker News": {
     "ok": true,
     "fetched": 20,
-    "last_run": "2026-10-19T00:05:42"
+    "last_run": "2026-10-20T00:05:45"
   }
 }
