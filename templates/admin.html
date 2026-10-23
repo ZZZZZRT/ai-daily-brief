@@ -46,6 +46,7 @@
   <main class="container">
     <h1 class="page-title">本地控制台</h1>
     <p class="page-sub">在这里调整 AI 的提示词与规则。<b>保存后会写入本地文件、重新生成网站，并提交推送到 GitHub。</b></p>
+    <p class="hint">提示：本地站点只显示本地仓库的内容。若云端已有新日报，点「同步最新」拉取（<code>git pull</code>）。</p>
 
     <section class="prompt-sec">
       <h2>兴趣画像 <span class="src">prompts/interests.md</span></h2>
@@ -79,6 +80,7 @@
       <button id="save" class="btn primary">保存并同步</button>
       <button id="preview" class="btn">预览最终提示词</button>
       <button id="run" class="btn">试跑一次（调用 AI，不推送）</button>
+      <button id="sync" class="btn">同步最新（拉取云端日报）</button>
       <button id="reload" class="btn">重新加载</button>
       <span id="status"></span>
     </div>
@@ -190,6 +192,25 @@
     };
 
     $("reload").onclick = loadData;
+
+    $("sync").onclick = async function () {
+      var btn = this; btn.disabled = true;
+      setStatus("正在拉取云端最新…");
+      try {
+        var res = await post("/api/sync");
+        var lines = [];
+        if (res.error) lines.push("错误：" + res.error);
+        (res.steps || []).forEach(function (s) {
+          lines.push("▶ " + s.name + "（退出码 " + s.code + "）");
+          if (s.out) lines.push(s.out);
+          if (s.err) lines.push("stderr:\n" + s.err);
+        });
+        showOutput("同步结果（当前 " + (res.head || "-") + "）", lines.join("\n\n"));
+        setStatus(res.ok ? "已同步到最新（" + (res.head || "") + "）" : "同步失败", res.ok ? "ok" : "err");
+        await loadData();
+      } catch (e) { setStatus("请求失败：" + e, "err"); }
+      finally { btn.disabled = false; }
+    };
 
     loadData();
   </script>

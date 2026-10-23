@@ -1,5 +1,11 @@
 # 变更记录
 
+## 2026-10-23 · 修复本地站点不更新 + 控制台「同步最新」
+- 原因：公网 GitHub Pages 每天正常更新；本地仓库停在 10-18，未 `git pull`，而本地站点服务的是本地 `docs/`。
+- 已把本地同步到最新（10-23）。
+- `admin.py` 新增 `POST /api/sync` 与「同步最新」按钮：执行 `git pull --ff-only`，拉取云端日报。
+
+
 ## 2026-10-18 · 统一前端 tab 栏
 - `templates/admin.html` 的 tab 栏补齐为 5 个（AI日报 / 工作流 / 资讯源 / 提示词 / 本地控制台），与站点一致。
 - `templates/app.js` 新增 `initLocalTab()`：仅在 `localhost` / `127.0.0.1` 访问时向站点页面追加「本地控制台」tab；公网不追加，避免 404。

@@ -66,6 +66,7 @@
 
 ## 本地 / 线上边界（重要，别搞错）
 
+- **本地站点（localhost:8123）只反映本地仓库**；云端的新日报需要 `git pull` 才能到本地（控制台有「同步最新」按钮）。
 - 每天运行时，GitHub Actions **只使用 GitHub 仓库里的代码，完全不使用本地文件**。
 - 本地改动**必须 `git push` 到 GitHub 才生效**。
 - Actions 每天会自动向 GitHub 提交 `reports/`，因此**本地改动前必须先 `git pull`**，否则 push 会冲突。
@@ -115,6 +116,7 @@
 - 手动补跑：Actions → Daily AI Brief → Run workflow（幂等，不会重复推送）
 - **本地控制台**：`python3 admin.py` → http://localhost:8123/admin
   （本地 `.env` 提供 `DEEPSEEK_API_KEY`；保存会写文件 + 重建网站 + git commit/push）
+- **同步本地**：控制台「同步最新」或 `git pull --ff-only origin main`（本地站点只反映本地仓库）
 - 查看状态：`python3 check.py all`；查看账本：`cat state/<日期>.json`
 - 失败排查：看 Actions 日志；连续失败会收到飞书告警
 

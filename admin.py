@@ -167,6 +167,14 @@ def run_preview():
     return {"ok": r["code"] == 0, "markdown": r["out"], "err": r["err"]}
 
 
+def sync_repo():
+    """把云端最新提交拉到本地（只允许 fast-forward，避免覆盖本地改动）。"""
+    pull = run(["git", "pull", "--ff-only", "origin", "main"], timeout=300)
+    head = run(["git", "rev-parse", "--short", "HEAD"])
+    return {"ok": pull["code"] == 0, "head": head["out"],
+            "steps": [{"name": "git pull", **pull}]}
+
+
 class Handler(BaseHTTPRequestHandler):
     server_version = "AIBriefAdmin/1.0"
 
@@ -229,6 +237,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(preview_prompt())
             if path == "/api/run":
                 return self._json(run_preview())
+            if path == "/api/sync":
+                return self._json(sync_repo())
             return self._json({"ok": False, "error": "not found"}, 404)
         except Exception as e:
             return self._json({"ok": False, "error": str(e)}, 500)

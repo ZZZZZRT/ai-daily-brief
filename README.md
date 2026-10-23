@@ -78,6 +78,7 @@ python3 admin.py
 - **保存并同步**：写本地文件 → 重新生成网站 → `git commit + push`
 - **预览最终提示词**（不调用 AI，不花钱）
 - **试跑一次**（调用 AI，写入 `reports/preview.*`，不推送、不改状态）
+- **同步最新**：拉取云端最新日报与代码（`git pull`）——本地站点只反映本地仓库
 
 需要本地 `.env`（已被 gitignore）提供 `DEEPSEEK_API_KEY`。
 
